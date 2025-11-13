@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>SCATT DIY - Treinamento a Seco</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .canvas-container {
+            flex: 1;
+            text-align: center;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #fff;
+            cursor: crosshair;
+        }
+        .controls-panel {
+            width: 300px;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-calibrating {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .score-display {
+            font: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #28a745;
+            color: white;
+        }
+        .disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .shot-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+        .shot-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .shot-item:last-child {
+            border-bottom: none;
+        }
+        .timer-display {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 SCATT DIY - Sistema de Treinamento a Seco</h1>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="alvo" width="600" height="600"></canvas>
+                <div style="margin-top: 10px; color: #666; font-size: 12px;">
+                    Escala: 1mm = 3px | Clique no alvo para zoom
+                </div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>🔧 Calibração</h3>
+                    <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
+                    <!-- <button id="btnSairCalibrar" class="btn-secondary" disabled>Sair Calibração</button> -->
+                    <div id="status" class="status-ready">Sistema pronto.</div>
+                    <div id="roiInfo" style="font-size: 14px; color: #555;">ROI: Carregando...</div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>⏱ Temporizador</h3>
+                    <div class="timer-display" id="timerDisplay">00:00:00</div>
+                    <button id="btnStartPause" class="btn-primary">Iniciar</button>
+                    <button id="btnResetTimer" class="btn-secondary">Resetar</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📊 Pontuação</h3>
+                    <div class="score-display" id="scoreDisplay">0 pts</div>
+                    <div class="stats">
+                        <div class="stats-item">
+                            <span>Tiros:</span>
+                            <span id="shotCount">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Média:</span>
+                            <span id="avgScore">0.0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Melhor:</span>
+                            <span id="bestShot">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>🎮 Ações</h3>
+                    <button id="btnLimpar" class="btn-danger">Limpar Tiros</button>
+                    <button id="btnSalvar" class="btn-secondary">Salvar Sessão</button>
+                    <button id="btnZoom" class="btn-secondary">Toggle Zoom</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📝 Histórico</h3>
+                    <div class="shot-history" id="shotHistory">
+                        <div style="text-align: center; color: #999;">Nenhum tiro registrado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="connectionStatus" class="connection-status disconnected">
+        Desconectado
+    </div>
+
+    <script src="script1.js"></script>
+</body>
+</html>
