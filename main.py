@@ -9,7 +9,7 @@ import os
 import numpy as np
 
 # ======================== CONFIG ========================
-RTSP_URL = "rtsp://admin:123456@192.168.18.124:5554"
+RTSP_URL = "rtsp://admin:123456@192.168.1.4:5554"
 
 ROI_SIZE_MM = 100
 MM_TO_PX_RATIO = 2.0
