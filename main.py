@@ -31,6 +31,8 @@ calibration_point = None
 calibrating = False
 roi_w = roi_h = int(ROI_SIZE_MM * MM_TO_PX_RATIO)
 roi_x = roi_y = 0
+calibration_updated = False
+
 
 # ======================== FLASK ========================
 app = Flask(__name__, static_folder="frontend")
@@ -111,7 +113,7 @@ def calculate_score(dx_mm, dy_mm):
 
 # ======================== LOOP VÍDEO ========================
 def video_loop():
-    global calibration_point, latest_hits, calibrating, roi_x, roi_y, roi_w, roi_h
+    global calibration_point, latest_hits, calibrating, roi_x, roi_y, roi_w, roi_h, calibration_updated
     cap = cv2.VideoCapture(RTSP_URL)
     if not cap.isOpened():
         print("[ERRO] Não foi possível abrir o stream RTSP.")
@@ -141,6 +143,7 @@ def video_loop():
             calibration_point = point
             calibrating = False
             latest_hits.clear()
+            calibration_updated = True   # <-- DISPARA EVENTO
             last_detection_time = current_time
         elif calibration_point and point and (current_time - last_detection_time) > detection_cooldown:
             dx_px = point[0] - calibration_point[0]
@@ -179,9 +182,14 @@ def video_loop():
 
 # ======================== WEBSOCKET ========================
 async def ws_handler(websocket):
+    global calibration_updated, latest_hits, calibrating
     try:
         while True:
             await asyncio.sleep(0.05)
+             # 1) enviar evento IMEDIATO de fim de calibração
+            if calibration_updated:
+                await websocket.send(json.dumps({"calibrando": False}))
+                calibration_updated = False
             if latest_hits:
                 await websocket.send(json.dumps({"hits": latest_hits, "calibrando": calibrating}))
                 latest_hits.clear()
