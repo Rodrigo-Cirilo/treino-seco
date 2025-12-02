@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>SCATT DIY - Treinamento a Seco</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .canvas-container {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #fff;
+            cursor: crosshair;
+        }
+        .controls-panel {
+            width: 300px;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-calibrating {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .score-display {
+            font: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #28a745;
+            color: white;
+        }
+        .disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .shot-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+        .shot-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .shot-item:last-child {
+            border-bottom: none;
+        }
+        .timer-display {
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        /* Camera preview small */
+        #cameraPreview {
+            width: 320px;
+            height: 180px;
+            border: 2px solid #333;
+            margin: 12px auto 0 auto;
+            background: #000;
+        }
+        .camera-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 SCATT DIY - Sistema de Treinamento a Seco</h1>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="alvo" width="600" height="600"></canvas>
+                <div style="margin-top: 10px; color: #666; font-size: 12px;">
+                    Escala: 1mm = 3px | Clique no alvo para zoom
+                </div>
+
+                <!-- camera preview (small) -->
+                <canvas id="cameraPreview" width="320" height="180"></canvas>
+                <div class="camera-label">Preview da câmera (MJPEG). URL padrão: <code id="cameraUrlLabel">http://192.168.0.50:8080/video</code></div>
+            </div>
+            
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>🔧 Calibração</h3>
+                    <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
+                    <div id="status" class="status-ready">Sistema pronto.</div>
+                    <div id="roiInfo" style="font-size: 14px; color: #555;">ROI: Carregando...</div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>⏱ Temporizador</h3>
+                    <div class="timer-display" id="timerDisplay">00:00:00</div>
+                    <button id="btnStartPause" class="btn-primary">Iniciar</button>
+                    <button id="btnResetTimer" class="btn-secondary">Resetar</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📊 Pontuação</h3>
+                    <div class="score-display" id="scoreDisplay">0 pts</div>
+                    <div class="stats">
+                        <div class="stats-item">
+                            <span>Tiros:</span>
+                            <span id="shotCount">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Média:</span>
+                            <span id="avgScore">0.0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Melhor:</span>
+                            <span id="bestShot">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>🎮 Ações</h3>
+                    <button id="btnLimpar" class="btn-danger">Limpar Tiros</button>
+                    <button id="btnSalvar" class="btn-secondary">Salvar Sessão</button>
+                    <button id="btnZoom" class="btn-secondary">Toggle Zoom</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📝 Histórico</h3>
+                    <div class="shot-history" id="shotHistory">
+                        <div style="text-align: center; color: #999;">Nenhum tiro registrado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="connectionStatus" class="connection-status disconnected">
+        Local
+    </div>
+
+<script>
+/* ===================== CONFIG ===================== */
+// URL MJPEG (troque pela sua URL local)
+const CAMERA_URL = "http://192.168.0.50:8080/video";
+
+// Detection threshold (fixo, conforme você pediu)
+const THRESHOLD = 240;
+
+// Relações e fatores (ajuste se necessário)
+const MM_TO_PX_RATIO = 4;      // quantos pixels da câmera = 1 mm (estimativa) - ajuste conforme seu setup
+const FRONTEND_PX_MM = 3;      // no seu frontend 1 mm = 3 px
+
+// Tempo mínimo entre detecções (ms)
+const DETECTION_COOLDOWN_MS = 300;
+
+/* ===================== VARIÁVEIS ===================== */
+const canvas = document.getElementById("alvo");
+const ctx = canvas.getContext("2d");
+
+let basePoint = null;               // usado apenas para desenhar o ponto de calibração (verdadeiro ou objeto)
+let calibrationCamPoint = null;     // {x,y} no espaço da câmera preview
+let pontosDisparo = [];
+let totalScore = 0;
+let zoomMode = false;
+let zoomFactor = 1;
+let zoomOffsetX = 0;
+let zoomOffsetY = 0;
+let timerRunning = false;
+let timerSeconds = 0;
+let timerInterval = null;
+
+const statusDiv = document.getElementById("status");
+const btnCalibrar = document.getElementById("btnCalibrar");
+const btnLimpar = document.getElementById("btnLimpar");
+const btnSalvar = document.getElementById("btnSalvar");
+const btnZoom = document.getElementById("btnZoom");
+const scoreDisplay = document.getElementById("scoreDisplay");
+const shotCount = document.getElementById("shotCount");
+const avgScore = document.getElementById("avgScore");
+const bestShot = document.getElementById("bestShot");
+const shotHistory = document.getElementById("shotHistory");
+const connectionStatus = document.getElementById("connectionStatus");
+const timerDisplay = document.getElementById("timerDisplay");
+const btnStartPause = document.getElementById("btnStartPause");
+const btnResetTimer = document.getElementById("btnResetTimer");
+const roiInfo = document.getElementById("roiInfo");
+document.getElementById("cameraUrlLabel").textContent = CAMERA_URL;
+
+let modoCalibracao = false;
+let lastDetectionTime = 0;
+
+/* Valores padrão do alvo (mesmos do seu script) */
+const DEFAULT_ALVO_PX = {
+    "7": 600,
+    "8": 450,
+    "9": 300,
+    "10": 150,
+    "X": 75
+};
+
+/* Config local (substitui o fetch /config) */
+const config = {
+    roi_size_mm: 80,
+    roi_size_px: 320,
+    roi_x: 0,
+    roi_y: 0,
+    alvo_virtual_px: DEFAULT_ALVO_PX,
+    roi_to_target_scale: 1.0,
+    frontend_px_mm: FRONTEND_PX_MM
+};
+roiInfo.textContent = `ROI: ${config.roi_size_mm}mm x ${config.roi_size_mm}mm (${config.roi_size_px}x${config.roi_size_px}px) @ (${config.roi_x}, ${config.roi_y})`;
+
+/* ===================== PREVIEW DA CÂMERA (MJPEG) ===================== */
+const camPreview = document.getElementById("cameraPreview");
+const camCtx = camPreview.getContext("2d");
+const camImg = new Image();
+let mjpegReaderAbort = false;
+
+// Start MJPEG by setting src to the MJPEG endpoint. Many MJPEG endpoints can be loaded as <img>.
+function startMJPEG() {
+    try {
+        camImg.crossOrigin = "anonymous";
+        camImg.src = CAMERA_URL;
+        camImg.onload = () => {
+            // nothing else needed; render loop will draw camImg continuously
+            console.log("MJPEG loaded");
+        };
+        camImg.onerror = (e) => {
+            console.warn("Erro carregando MJPEG (verifique URL):", e);
+            setTimeout(() => { camImg.src = CAMERA_URL; }, 1500);
+        };
+    } catch (e) {
+        console.error("Erro ao iniciar MJPEG:", e);
+    }
+}
+
+/* ===================== FUNÇÕES DO ALVO (mantidas do seu script) ===================== */
+function desenharAlvo() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (zoomMode) {
+        ctx.scale(zoomFactor, zoomFactor);
+        ctx.translate(zoomOffsetX, zoomOffsetY);
+    }
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    ctx.fillStyle = "white";
+    ctx.fillRect(-centerX, -centerY, canvas.width * 2, canvas.height * 2);
+    
+    const alvo_px = config ? config.alvo_virtual_px : DEFAULT_ALVO_PX;
+    const circulos = [
+        { raio: alvo_px["7"] / 2, cor: "black", pontos: 7 },
+        { raio: alvo_px["8"] / 2, cor: "black", pontos: 8 },
+        { raio: alvo_px["9"] / 2, cor: "black", pontos: 9 },
+        { raio: alvo_px["10"] / 2, cor: "black", pontos: 10 },
+        { raio: alvo_px["X"] / 2, cor: "black", pontos: "X" }
+    ];
+    circulos.forEach((circulo, index) => {
+        ctx.strokeStyle = circulo.cor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, circulo.raio, 0, 2 * Math.PI);
+        ctx.stroke();
+        if (index < circulos.length - 1) {
+            ctx.fillStyle = "black";
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(circulo.pontos, centerX, centerY - circulo.raio - 10);
+        }
+    });
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, alvo_px["X"] / 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(centerX - alvo_px["7"] / 2, centerY);
+    ctx.lineTo(centerX + alvo_px["7"] / 2, centerY);
+    ctx.moveTo(centerX, centerY - alvo_px["7"] / 2);
+    ctx.lineTo(centerX, centerY + alvo_px["7"] / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
+function transformarCoord(dx, dy) {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    // scale_factor está disponível no config
+    return { x: centerX + dx, y: centerY + dy }; // Usar dx, dy diretamente do hit.x, hit.y
+}
+
+function plotarPontos() {
+    desenharAlvo();
+    ctx.save();
+    if (zoomMode) {
+        ctx.scale(zoomFactor, zoomFactor);
+        ctx.translate(zoomOffsetX, zoomOffsetY);
+    }
+    if (basePoint) {
+        const p = transformarCoord(0, 0);
+        ctx.beginPath();
+        ctx.fillStyle = "purple";
+        ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+    }
+    pontosDisparo.forEach((pt, index) => {
+        const p = transformarCoord(pt.dx, pt.dy);
+        ctx.beginPath();
+        ctx.fillStyle = "red";
+        ctx.arc(p.x, p.y, 7.5, 0, 2 * Math.PI);  // 15 px de diâmetro
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = "white";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(index + 1, p.x, p.y + 3);
+    });
+    ctx.restore();
+}
+
+function atualizarEstatisticas() {
+    const numTiros = pontosDisparo.length;
+    shotCount.textContent = numTiros;
+    if (numTiros > 0) {
+        const pontuacoes = pontosDisparo.map(pt => pt.score);
+        totalScore = pontuacoes.reduce((sum, score) => sum + score, 0);
+        const media = totalScore / numTiros;
+        const melhor = Math.max(...pontuacoes);
+        scoreDisplay.textContent = `${totalScore.toFixed(1)} pts`;
+        avgScore.textContent = media.toFixed(1);
+        bestShot.textContent = melhor.toFixed(1);
+        atualizarHistorico();
+    } else {
+        scoreDisplay.textContent = "0 pts";
+        avgScore.textContent = "0.0";
+        bestShot.textContent = "0";
+        shotHistory.innerHTML = '<div style="text-align: center; color: #999;">Nenhum tiro registrado</div>';
+    }
+}
+
+function atualizarHistorico() {
+    const historico = pontosDisparo.map((pt, index) => {
+        return `
+            <div class="shot-item">
+                <span>Tiro ${index + 1}:</span>
+                <span>${pt.score.toFixed(1)} pts</span>
+            </div>
+        `;
+    }).join('');
+    shotHistory.innerHTML = historico;
+    shotHistory.scrollTop = shotHistory.scrollHeight;
+}
+
+function atualizarStatus(texto, classe) {
+    statusDiv.textContent = texto;
+    statusDiv.className = classe;
+}
+
+function salvarSessao() {
+    const sessao = {
+        timestamp: new Date().toISOString(),
+        tiros: pontosDisparo.map(pt => ({
+            dx: pt.dx,
+            dy: pt.dy,
+            pontos: pt.score
+        })),
+        totalScore: totalScore,
+        numTiros: pontosDisparo.length
+    };
+    const blob = new Blob([JSON.stringify(sessao, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scatt_session_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateTimer() {
+    timerSeconds++;
+    timerDisplay.textContent = formatTime(timerSeconds);
+}
+
+/* ===================== EVENT LISTENERS (controles) ===================== */
+btnCalibrar.onclick = () => {
+    modoCalibracao = true;
+    basePoint = null;
+    pontosDisparo = [];
+    atualizarStatus("Modo calibração: aponte o laser para o centro do alvo e aguarde.", "status-calibrating");
+    btnCalibrar.disabled = true;
+    plotarPontos();
+    atualizarEstatisticas();
+    // agora a calibração será tratada localmente ao detectar o ponto brilhante
+};
+
+btnLimpar.onclick = () => {
+    pontosDisparo = [];
+    totalScore = 0;
+    plotarPontos();
+    atualizarEstatisticas();
+};
+
+btnSalvar.onclick = salvarSessao;
+
+btnZoom.onclick = () => {
+    zoomMode = !zoomMode;
+    if (zoomMode) {
+        zoomFactor = 3;
+        zoomOffsetX = -100;
+        zoomOffsetY = -100;
+        btnZoom.textContent = "Zoom Normal";
+    } else {
+        zoomFactor = 1;
+        zoomOffsetX = 0;
+        zoomOffsetY = 0;
+        btnZoom.textContent = "Zoom Centro";
+    }
+    plotarPontos();
+};
+
+btnStartPause.onclick = () => {
+    if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btnStartPause.textContent = "Iniciar";
+    } else {
+        timerInterval = setInterval(updateTimer, 1000);
+        timerRunning = true;
+        btnStartPause.textContent = "Pausar";
+    }
+};
+
+btnResetTimer.onclick = () => {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    timerDisplay.textContent = "00:00:00";
+    btnStartPause.textContent = "Iniciar";
+};
+
+/* ===================== DETECÇÃO NO FRONTEND (MJPEG -> canvas) ===================== */
+
+/**
+ * detectLaserInImageData
+ * percorre os pixels do ImageData (RGBA) e retorna o pixel mais brilhante
+ * (usando o método antigo: brilho = max(r,g,b) e threshold fixo).
+ * Retorna {x,y} em coordenadas do canvas de preview, ou null.
+ */
+function detectLaserInImageData(imgData, width, height) {
+    const data = imgData.data;
+    let maxB = -1;
+    let bx = null, by = null;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const bright = Math.max(r, g, b);
+        if (bright > THRESHOLD && bright > maxB) {
+            maxB = bright;
+            const idx = i / 4;
+            bx = idx % width;
+            by = Math.floor(idx / width);
+        }
+    }
+    if (bx !== null) return { x: bx, y: by };
+    return null;
+}
+
+/**
+ * calculateScore(distance_mm)
+ * função simples de scoring: 10 pontos no centro, decresce com a distância.
+ * ajuste conforme desejado.
+ */
+function calculateScore(distance_mm) {
+    // exemplo: pontuação linear decrescente (até 0)
+    const score = Math.max(0, 10 - (distance_mm / 5)); // 5 mm por ponto
+    return Math.round(score * 10) / 10; // 1 casa decimal
+}
+
+/* Main loop: desenha preview da câmera, detecta ponto, faz calibração e registra tiros */
+function mainLoop() {
+    // draw camera preview image (camImg) into camPreview canvas
+    try {
+        camCtx.drawImage(camImg, 0, 0, camPreview.width, camPreview.height);
+    } catch (e) {
+        // imagem possivelmente não carregada ainda
+    }
+
+    // pegar pixels do preview
+    const imgData = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
+    const detected = detectLaserInImageData(imgData, camPreview.width, camPreview.height);
+    const now = performance.now();
+
+    if (detected && (now - lastDetectionTime > DETECTION_COOLDOWN_MS)) {
+        if (modoCalibracao) {
+            // grava ponto de calibração (nas coordenadas da câmera)
+            calibrationCamPoint = detected;
+            // para desenho no alvo, setamos basePoint verdadeiro (mantém compatibilidade)
+            basePoint = { x: 0, y: 0 };
+            modoCalibracao = false;
+            btnCalibrar.disabled = false;
+            atualizarStatus("Modo normal. Dispare para ver os impactos.", "status-ready");
+        } else if (calibrationCamPoint) {
+            // calcular deslocamento em px na câmera
+            const dx_cam_px = detected.x - calibrationCamPoint.x;
+            const dy_cam_px = detected.y - calibrationCamPoint.y;
+
+            // converter px_camera -> mm (usar MM_TO_PX_RATIO)
+            const dx_mm = dx_cam_px / MM_TO_PX_RATIO;
+            const dy_mm = dy_cam_px / MM_TO_PX_RATIO;
+
+            // converter mm -> frontend px (alvo)
+            const dx_front_px = dx_mm * FRONTEND_PX_MM;
+            const dy_front_px = dy_mm * FRONTEND_PX_MM;
+
+            // calcular distância em mm para scoring
+            const dist_mm = Math.sqrt(dx_mm*dx_mm + dy_mm*dy_mm);
+
+            const score = calculateScore(dist_mm);
+
+            // push no array usado pelo seu frontend
+            pontosDisparo.push({ dx: dx_front_px, dy: dy_front_px, score: score });
+
+            if (pontosDisparo.length > 50) pontosDisparo = pontosDisparo.slice(-50);
+
+            plotarPontos();
+            atualizarEstatisticas();
+        }
+        lastDetectionTime = now;
+    }
+
+    // desenha indicação de calibração e ponto no preview para debug
+    // limpar preview borda
+    camCtx.strokeStyle = "rgba(255,255,255,0.1)";
+    camCtx.lineWidth = 1;
+    camCtx.strokeRect(0,0,camPreview.width, camPreview.height);
+
+    if (calibrationCamPoint) {
+        camCtx.beginPath();
+        camCtx.fillStyle = "yellow";
+        camCtx.arc(calibrationCamPoint.x, calibrationCamPoint.y, 6, 0, Math.PI*2);
+        camCtx.fill();
+    }
+    if (detected) {
+        camCtx.beginPath();
+        camCtx.fillStyle = "lime";
+        camCtx.arc(detected.x, detected.y, 4, 0, Math.PI*2);
+        camCtx.fill();
+    }
+
+    // redesenhar alvo (para manter consistência)
+    plotarPontos();
+
+    requestAnimationFrame(mainLoop);
+}
+
+/* ===================== START ===================== */
+desenharAlvo();
+atualizarEstatisticas();
+startMJPEG();
+requestAnimationFrame(mainLoop);
+
+</script>
+</body>
+</html>
