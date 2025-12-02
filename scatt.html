@@ -287,6 +287,8 @@ let timerRunning = false;
 let timerSeconds = 0;
 let timerInterval = null;
 
+let cameraFrameOK = false;
+
 const statusDiv = document.getElementById("status");
 const btnCalibrar = document.getElementById("btnCalibrar");
 const btnLimpar = document.getElementById("btnLimpar");
@@ -341,6 +343,7 @@ function startMJPEG() {
         camImg.src = CAMERA_URL;
         camImg.onload = () => {
             // nothing else needed; render loop will draw camImg continuously
+            cameraFrameOK = true;
             console.log("MJPEG loaded");
         };
         camImg.onerror = (e) => {
@@ -519,6 +522,10 @@ function updateTimer() {
 
 /* ===================== EVENT LISTENERS (controles) ===================== */
 btnCalibrar.onclick = () => {
+    if (!cameraFrameOK) {
+        atualizarStatus("Câmera indisponível. Não é possível calibrar.", "status-error");
+        return;
+    }
     modoCalibracao = true;
     basePoint = null;
     pontosDisparo = [];
