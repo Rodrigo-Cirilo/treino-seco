@@ -1,0 +1,19 @@
+[PROJECT]
+Target=acionador.hex
+Processor_Text=PIC12F675
+CCSVersion=5.015
+Compiler=PCM
+[Target Data]
+FileList=acionador.c
+[Directories]
+Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\
+[acionador.c]
+Type=4
+[mru-list]
+1=acionador.c
+[Units]
+Count=1
+1=acionador (main)
+[Opened Files]
+1=acionador.c
+2=

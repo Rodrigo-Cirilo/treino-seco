@@ -1,0 +1,45 @@
+
+ROM used:   73/1024 (7%)
+            73/1024 (7%) including unused fragments
+
+            0.1 Average locations per line
+            7.3 Average locations per statement
+
+RAM used:   5/64 (8%) at main() level
+            6/64 (9%) worst case
+
+Stack used: 1 worst case (1 in main + 0 for interrupts)
+Stack size: 8
+
+Lines Stmts  %   Files
+----- ----- ---  -----
+   25    10 100  acionador.c
+  497     0   0  ..\..\..\..\..\Program Files (x86)\PICC\Devices\12F675.h
+----- -----
+  522    10 Total
+
+Page ROM  %  RAM   Vol Diff  Functions:
+---- --- --- ---   --- ----  ----------
+0     20  27    1             @delay_ms1
+0     43  59    1   161  2.2  main
+ Inline         0             @cinit1
+
+Program metrics:
+    Functions               1
+    Statements              10
+    Comments                101
+    Volume (V)              165
+    Difficulty (D)          2.0
+    Effort to implement (E) 326
+    Time to implement (T)   0 minutes
+    Est Delivered Bugs (B)  0
+    Cyclomatic Complexity   1
+    Maintainability (MI)    114
+
+ Segment     Used  Free
+-----------  ----  ----
+00000-00003     4  0  
+00004-003FF    69  951  
+
+
+

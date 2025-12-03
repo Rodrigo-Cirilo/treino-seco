@@ -1,0 +1,48 @@
+004-005 @READ_PROGRAM_MEMORY8.P1
+019.6   C1OUT
+020     @SCRATCH
+021     @SCRATCH
+021     _RETURN_
+022     @SCRATCH
+023     @SCRATCH
+025     main.@SCRATCH1
+026     @delay_ms1.P1
+09B-09C @READ_PROGRAM_MEMORY8.P1
+
+ROM Allocation:
+00000A  @delay_ms1
+00001E  @cinit1
+00001E  main
+00002A  @cinit2
+
+Project Directory:
+    C:\Users\Rodrigo\Documents\treino-seco\circuitoacionador\
+
+Project Files:
+    acionador.c                                             [24-nov-25 16:41  CRC=61117CF5]
+    ..\..\..\..\..\Program Files (x86)\PICC\Devices\12F675.h [12-nov-13 14:34  CRC=9679F8C3]
+
+Source signature=8E056E7B
+
+Units:
+    acionador (main)
+
+Compiler Settings:
+    Processor:      PIC12F675
+    Pointer Size:   8
+    ADC Range:      0-255
+    Opt Level:      9
+    Short,Int,Long: UNSIGNED: 1,8,16
+    Float,Double:   32,32
+
+Output Files:
+    XREF file:   acionador.xsym
+    Errors:      acionador.err
+    Ext Symbols: acionador.esym
+    INHX8:       acionador.hex
+    Symbols:     acionador.sym
+    List:        acionador.lst
+    Debug/COFF:  acionador.cof
+    Project:     acionador.ccspjt
+    Call Tree:   acionador.tre
+    Statistics:  acionador.STA
