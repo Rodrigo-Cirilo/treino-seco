@@ -161,7 +161,7 @@
             border-bottom: none;
         }
         .timer-display {
-            font-size: 18px;
+            font-size: 35px;
             font-weight: bold;
             text-align: center;
             padding: 10px;
@@ -174,31 +174,85 @@
         #cameraPreview {
             width: 320px;
             height: 180px;
-            border: 2px solid #333;
-            margin: 12px auto 0 auto;
+            border: 2px solid #333;           
             background: #000;
+            cursor: grabbing;
         }
-        .camera-label {
-            font-size: 12px;
-            color: #666;
-            margin-top: 6px;
+
+
+
+        .slidecontainer {
+            width: 100%;
         }
+
+        .slider {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 25px;
+            background: #d3d3d3;
+            outline: none;
+            opacity: 0.7;
+            -webkit-transition: .2s;
+            transition: opacity .2s;
+        }
+
+        .slider:hover {
+            opacity: 1;
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 25px;
+            height: 25px;
+            background: #04AA6D;
+            cursor: pointer;
+        }
+
+        .slider::-moz-range-thumb {
+            width: 25px;
+            height: 25px;
+            background: #04AA6D;
+            cursor: pointer;
+        }
+        #containerPreview{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            border: 1px solid black;
+            padding: 5px;
+            border-radius: 3px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: grabbing;
+        }
+
+    
+
+
+
+       
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎯 SCATT DIY - Sistema de Treinamento a Seco</h1>
+        <h1 style="opacity: 0.01;">🎯 SCATT DIY - Sistema de Treinamento a Seco</h1>
         
         <div class="main-content">
             <div class="canvas-container">
-                <canvas id="alvo" width="600" height="600"></canvas>
-                <div style="margin-top: 10px; color: #666; font-size: 12px;">
-                    Escala: 1mm = 3px | Clique no alvo para zoom
-                </div>
+                <canvas style="opacity: 0.01;" id="alvo" width="600" height="600"></canvas>
+                
 
                 <!-- camera preview (small) -->
-                <canvas id="cameraPreview" width="320" height="180"></canvas>
-                <div class="camera-label">Preview da câmera (MJPEG). URL padrão: <code id="cameraUrlLabel">http://192.168.0.50:8080/video</code></div>
+                <div id="containerPreview"">
+                    <canvas id="cameraPreview" width="320" height="180"></canvas>
+                    <div style="display: block">
+                        <input style="font-size: 16px;" id="cameraIPInput" type="text" class="camera-ip" placeholder="ex: 192.168.0.4">
+                        <button style="background-color: green;" id="btnConectarCamera">Conectar</button>
+                    </div>
+                </div> 
             </div>
             
             <div class="controls-panel">
@@ -206,7 +260,11 @@
                     <h3>🔧 Calibração</h3>
                     <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
                     <div id="status" class="status-ready">Sistema pronto.</div>
-                    <div id="roiInfo" style="font-size: 14px; color: #555;">ROI: Carregando...</div>
+                    
+                </div>
+                <div class="slidecontainer">                    
+                    <span>Sensibilidade da detecção:</span> <span id="sensibilidade"></span>
+                    <input type="range" min="200" max="240" value="220" class="slider" id="myRange">
                 </div>
                 
                 <div class="control-group">
@@ -252,18 +310,16 @@
         </div>
     </div>
     
-    <div id="connectionStatus" class="connection-status disconnected">
-        Local
-    </div>
+   
 
 <script>
 /* ===================== CONFIG ===================== */
 // URL MJPEG (troque pela sua URL local)
-const CAMERA_URL = "http://192.168.1.4:8080/video";
+let CAMERA_URL = ""; //http://192.168.1.4:8080/video
 
 
 // Detection threshold (fixo, conforme você pediu)
-const THRESHOLD = 214;
+let THRESHOLD = 0;
 
 // Relações e fatores (ajuste se necessário)
 const MM_TO_PX_RATIO = 0.3;      // quantos pixels da câmera = 1 mm (estimativa) - ajuste conforme seu setup
@@ -306,12 +362,16 @@ const shotCount = document.getElementById("shotCount");
 const avgScore = document.getElementById("avgScore");
 const bestShot = document.getElementById("bestShot");
 const shotHistory = document.getElementById("shotHistory");
-const connectionStatus = document.getElementById("connectionStatus");
+const btnConectarCamera = document.getElementById("btnConectarCamera");
+const cameraIPInput = document.getElementById("cameraIPInput");
+
 const timerDisplay = document.getElementById("timerDisplay");
 const btnStartPause = document.getElementById("btnStartPause");
 const btnResetTimer = document.getElementById("btnResetTimer");
-const roiInfo = document.getElementById("roiInfo");
-document.getElementById("cameraUrlLabel").textContent = CAMERA_URL;
+const sensitivitySlider = document.getElementById("myRange");
+const sensitivityValue = document.getElementById("sensibilidade");
+const divPreview = document.getElementById("containerPreview");
+
 
 let modoCalibracao = false;
 let lastDetectionTime = 0;
@@ -335,7 +395,58 @@ const config = {
     roi_to_target_scale: 1.0,
     frontend_px_mm: FRONTEND_PX_MM
 };
-roiInfo.textContent = `ROI: ${config.roi_size_mm}mm x ${config.roi_size_mm}mm (${config.roi_size_px}x${config.roi_size_px}px) @ (${config.roi_x}, ${config.roi_y})`;
+
+
+
+
+let dragging = false;
+let startX = 0, startY = 0;
+let currentX = -50, currentY = -50; // a div começa com translate(-50%, -50%)
+
+divPreview.addEventListener("mousedown", (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+});
+
+document.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    divPreview.style.transform = `translate(${currentX + dx}px, ${currentY + dy}px)`;
+});
+
+document.addEventListener("mouseup", (e) => {
+    if (!dragging) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    currentX += dx;
+    currentY += dy;
+
+    dragging = false;
+    localStorage.setItem("divPreviewX", currentX);
+    localStorage.setItem("divPreviewY", currentY);
+});
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    sensitivityValue.textContent = localStorage.getItem("sensitivity") || "220";
+    THRESHOLD = parseInt(sensitivityValue.textContent);
+    sensitivitySlider.value = THRESHOLD;
+    const savedX = localStorage.getItem("divPreviewX");
+    const savedY = localStorage.getItem("divPreviewY");
+
+    if (savedX !== null && savedY !== null) {
+        currentX = parseFloat(savedX);
+        currentY = parseFloat(savedY);
+        divPreview.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    }
+});
+
 
 /* ===================== PREVIEW DA CÂMERA (MJPEG) ===================== */
 const camPreview = document.getElementById("cameraPreview");
@@ -352,13 +463,15 @@ function startMJPEG() {
             // nothing else needed; render loop will draw camImg continuously
             cameraFrameOK = true;
             console.log("MJPEG loaded");
+            atualizarStatus("Câmera conectada com sucesso.", "status-ok");
         };
         camImg.onerror = (e) => {
             console.warn("Erro carregando MJPEG (verifique URL):", e);
-            setTimeout(() => { camImg.src = CAMERA_URL; }, 1500);
+            atualizarStatus("Erro ao carregar câmera (verifique URL).", "status-error");
         };
     } catch (e) {
         console.error("Erro ao iniciar MJPEG:", e);
+        atualizarStatus("Erro ao iniciar câmera.", "status-error");
     }
 }
 
@@ -549,6 +662,24 @@ btnLimpar.onclick = () => {
     plotarPontos();
     atualizarEstatisticas();
 };
+
+sensitivitySlider.oninput = () => {
+    const val = parseInt(sensitivitySlider.value);
+    sensitivityValue.textContent = val;   
+    THRESHOLD = val;
+    localStorage.setItem("sensitivity", val);
+};
+
+btnConectarCamera.onclick = () => {
+    const ip = cameraIPInput.value.trim();
+    if (ip) {
+        CAMERA_URL = `http://${ip}:8080/video`;
+        startMJPEG();
+        atualizarStatus("Tentando conectar à câmera...", "status-calibrating");        
+    } else {
+        atualizarStatus("Por favor, insira um endereço IP válido.", "status-error");
+    }
+}
 
 btnSalvar.onclick = salvarSessao;
 
@@ -813,7 +944,6 @@ function mainLoop() {
 /* ===================== START ===================== */
 desenharAlvo();
 atualizarEstatisticas();
-startMJPEG();
 requestAnimationFrame(mainLoop);
 
 </script>
