@@ -1,0 +1,60 @@
+004-005 @READ_PROGRAM_MEMORY8.P1
+019.6   C1OUT
+020     @SCRATCH
+021     @SCRATCH
+021     _RETURN_
+022     @SCRATCH
+023     @SCRATCH
+025     MAIN.delay_trigger
+026     MAIN.nivel
+027.0   MAIN.long_press_detected
+028-029 MAIN.counter
+02A     blink_output.vezes
+02A     MAIN.@SCRATCH1
+02B     blink_output.i
+02B     MAIN.@SCRATCH2
+02C     @delay_ms1.P1
+02C     @MUL88.P2
+02D     @MUL88.P1
+09B-09C @READ_PROGRAM_MEMORY8.P1
+
+ROM Allocation:
+00000A  @delay_ms1
+00001E  read_button_stable
+000031  @MUL88
+000056  blink_output
+00006C  MAIN
+00006C  @cinit1
+000078  @cinit2
+
+Project Directory:
+    C:\Users\Rodrigo\Documents\treino-seco\circuitoacionador\
+
+Project Files:
+    acionadoparafront.c                                     [03-dez-25 19:07  CRC=D50CB851]
+    ..\..\..\..\..\Program Files (x86)\PICC\Devices\12F675.h [12-nov-13 14:34  CRC=9679F8C3]
+
+Source signature=0200A9D7
+
+Units:
+    acionadoparafront (main)
+
+Compiler Settings:
+    Processor:      PIC12F675
+    Pointer Size:   8
+    ADC Range:      0-255
+    Opt Level:      9
+    Short,Int,Long: UNSIGNED: 1,8,16
+    Float,Double:   32,32
+
+Output Files:
+    XREF file:   acionadoparafront.xsym
+    Errors:      acionadoparafront.err
+    Ext Symbols: acionadoparafront.esym
+    INHX8:       acionadoparafront.hex
+    Symbols:     acionadoparafront.sym
+    List:        acionadoparafront.lst
+    Debug/COFF:  acionadoparafront.cof
+    Project:     acionadoparafront.ccspjt
+    Call Tree:   acionadoparafront.tre
+    Statistics:  acionadoparafront.STA

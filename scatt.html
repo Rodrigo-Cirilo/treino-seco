@@ -259,13 +259,14 @@
 <script>
 /* ===================== CONFIG ===================== */
 // URL MJPEG (troque pela sua URL local)
-const CAMERA_URL = "http://192.168.1.4:8080/stream.mjpeg";
+const CAMERA_URL = "http://192.168.1.4:8080/video";
+
 
 // Detection threshold (fixo, conforme você pediu)
-const THRESHOLD = 240;
+const THRESHOLD = 214;
 
 // Relações e fatores (ajuste se necessário)
-const MM_TO_PX_RATIO = 4;      // quantos pixels da câmera = 1 mm (estimativa) - ajuste conforme seu setup
+const MM_TO_PX_RATIO = 0.3;      // quantos pixels da câmera = 1 mm (estimativa) - ajuste conforme seu setup
 const FRONTEND_PX_MM = 3;      // no seu frontend 1 mm = 3 px
 
 // Tempo mínimo entre detecções (ms)
@@ -338,7 +339,7 @@ roiInfo.textContent = `ROI: ${config.roi_size_mm}mm x ${config.roi_size_mm}mm ($
 
 /* ===================== PREVIEW DA CÂMERA (MJPEG) ===================== */
 const camPreview = document.getElementById("cameraPreview");
-const camCtx = camPreview.getContext("2d");
+const camCtx = camPreview.getContext("2d", { willReadFrequently: true });
 const camImg = new Image();
 let mjpegReaderAbort = false;
 
@@ -429,16 +430,16 @@ function plotarPontos() {
         ctx.scale(zoomFactor, zoomFactor);
         ctx.translate(zoomOffsetX, zoomOffsetY);
     }
-    if (basePoint) {
-        const p = transformarCoord(0, 0);
-        ctx.beginPath();
-        ctx.fillStyle = "purple";
-        ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-    }
+    // if (basePoint) {
+    //     const p = transformarCoord(0, 0);
+    //     ctx.beginPath();
+    //     ctx.fillStyle = "purple";
+    //     ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+    //     ctx.fill();
+    //     ctx.strokeStyle = "white";
+    //     ctx.lineWidth = 2;
+    //     ctx.stroke();
+    // }
     pontosDisparo.forEach((pt, index) => {
         const p = transformarCoord(pt.dx, pt.dy);
         ctx.beginPath();
@@ -595,36 +596,64 @@ btnResetTimer.onclick = () => {
  * (usando o método antigo: brilho = max(r,g,b) e threshold fixo).
  * Retorna {x,y} em coordenadas do canvas de preview, ou null.
  */
-function detectLaserInImageData(imgData, width, height) {
+// function detectLaser(imgData, width, height) {
+//     const data = imgData.data;
+//     let maxB = -1;
+//     let bx = null, by = null;
+
+//     for (let i = 0; i < data.length; i += 4) {
+//         const idx = i / 4;
+//         const x = idx % width;
+//         const y = Math.floor(idx / width);
+
+//         // checar se está dentro do ROI circular
+//         const dx = x - ROI_CENTER_X;
+//         const dy = y - ROI_CENTER_Y;
+//         if ((dx*dx + dy*dy) > (ROI_RADIUS * ROI_RADIUS)) continue;
+
+//         const r = data[i];
+//         const g = data[i + 1];
+//         const b = data[i + 2];
+//         const bright = Math.max(r, g, b);
+
+//         if (bright > THRESHOLD && bright > maxB) {
+//             maxB = bright;
+//             bx = x;
+//             by = y;
+//         }
+//     }
+
+//     if (bx !== null) return { x: bx, y: by };
+//     return null;
+// }
+function detectLaser(imgData, w, h) {
     const data = imgData.data;
-    let maxB = -1;
-    let bx = null, by = null;
+
+    let maxG = 0;
+    let px = null, py = null;
+
+    const TH = THRESHOLD;  // use sua constante
 
     for (let i = 0; i < data.length; i += 4) {
-        const idx = i / 4;
-        const x = idx % width;
-        const y = Math.floor(idx / width);
-
-        // checar se está dentro do ROI circular
-        const dx = x - ROI_CENTER_X;
-        const dy = y - ROI_CENTER_Y;
-        if ((dx*dx + dy*dy) > (ROI_RADIUS * ROI_RADIUS)) continue;
-
         const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-        const bright = Math.max(r, g, b);
+        const g = data[i+1];
+        const b = data[i+2];
 
-        if (bright > THRESHOLD && bright > maxB) {
-            maxB = bright;
-            bx = x;
-            by = y;
+        // olhar só para o verde, desprezar outras cores
+        if (g > TH && g > maxG) {
+            maxG = g;
+
+            const index = i / 4;
+            px = index % w;
+            py = Math.floor(index / w);
         }
     }
 
-    if (bx !== null) return { x: bx, y: by };
-    return null;
+    if (px === null) return null;
+    return { x: px, y: py };
 }
+
+
 
 
 /**
@@ -640,86 +669,126 @@ function calculateScore(distance_mm) {
 
 /* Main loop: desenha preview da câmera, detecta ponto, faz calibração e registra tiros */
 function mainLoop() {
-    // draw camera preview image (camImg) into camPreview canvas
 
-    // desenhar ROI circular
-    
-    
+    // ===========================================================
+    // 1) Desenha frame da câmera
+    // ===========================================================
     try {
         camCtx.drawImage(camImg, 0, 0, camPreview.width, camPreview.height);
+
+        // ----------------------------
+        // 2) Desenhar ROI circular (VISUAL)
+        // agora com bordas escuras para não serem detectadas
+        // ----------------------------
         camCtx.beginPath();
-        camCtx.strokeStyle = "rgba(255,255,255,0.7)";
-        camCtx.lineWidth = 2;
+        camCtx.strokeStyle = "rgba(30,30,30,0.9)";   // Borda escura (não estoura THRESHOLD)
+        camCtx.lineWidth = 3;
         camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
         camCtx.stroke();
-    
-        // sombra interna (opcional para visual mais bonito)
+
+        // sombra interna leve que NÃO interfere na detecção
         camCtx.beginPath();
-        camCtx.fillStyle = "rgba(0,0,0,0.25)";
+        camCtx.fillStyle = "rgba(0,0,0,0.10)";
         camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
         camCtx.fill();
+
     } catch (e) {
-        // imagem possivelmente não carregada ainda
+        // imagem ainda não carregou
     }
 
-    // pegar pixels do preview
+
+    // ===========================================================
+    // 3) Capturar pixels do preview para detectar laser
+    // ===========================================================
     const imgData = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
-    const detected = detectLaserInImageData(imgData, camPreview.width, camPreview.height);
+    const detected = detectLaser(imgData, camPreview.width, camPreview.height);
     const now = performance.now();
 
-    if (detected && (now - lastDetectionTime > DETECTION_COOLDOWN_MS)) {
+
+    // ===========================================================
+    // 4) PROCESSAR DETECÇÃO
+    // ===========================================================
+    if (detected && now - lastDetectionTime > DETECTION_COOLDOWN_MS) {
+
+        // -----------------------------------------------------------
+        // A) Salvar ponto de calibração
+        // -----------------------------------------------------------
         if (modoCalibracao) {
-            // grava ponto de calibração (nas coordenadas da câmera)
+
             calibrationCamPoint = {
                 x: detected.x - ROI_CENTER_X,
                 y: detected.y - ROI_CENTER_Y
             };
-            // para desenho no alvo, setamos basePoint verdadeiro (mantém compatibilidade)
-            basePoint = { x: 0, y: 0 };
+
+            basePoint = { x: 0, y: 0 }; // mantém compatibilidade antiga
+
             modoCalibracao = false;
             btnCalibrar.disabled = false;
             atualizarStatus("Modo normal. Dispare para ver os impactos.", "status-ready");
-        } else if (calibrationCamPoint) {
-            // calcular deslocamento em px na câmera
-            const dx_cam_px = (detected.x - ROI_CENTER_X) - calibrationCamPoint.x;
-            const dy_cam_px = (detected.y - ROI_CENTER_X) - calibrationCamPoint.y;
 
-            // converter px_camera -> mm (usar MM_TO_PX_RATIO)
+        }
+
+        // -----------------------------------------------------------
+        // B) Tiro normal (se já calibrado)
+        // -----------------------------------------------------------
+        else if (calibrationCamPoint) {
+
+            // deslocamento na câmera (px)
+            const dx_cam_px = (detected.x - ROI_CENTER_X) - calibrationCamPoint.x;
+            const dy_cam_px = (detected.y - ROI_CENTER_Y) - calibrationCamPoint.y;
+
+            // px → mm
             const dx_mm = dx_cam_px / MM_TO_PX_RATIO;
             const dy_mm = dy_cam_px / MM_TO_PX_RATIO;
 
-            // converter mm -> frontend px (alvo)
+            // mm → alvo virtual px
             const dx_front_px = dx_mm * FRONTEND_PX_MM;
             const dy_front_px = dy_mm * FRONTEND_PX_MM;
 
-            // calcular distância em mm para scoring
             const dist_mm = Math.sqrt(dx_mm*dx_mm + dy_mm*dy_mm);
-
             const score = calculateScore(dist_mm);
 
-            // push no array usado pelo seu frontend
-            pontosDisparo.push({ dx: dx_front_px, dy: dy_front_px, score: score });
+            // salva tiro
+            pontosDisparo.push({
+                dx: dx_front_px,
+                dy: dy_front_px,
+                score: score
+            });
 
-            if (pontosDisparo.length > 50) pontosDisparo = pontosDisparo.slice(-50);
+            if (pontosDisparo.length > 50)
+                pontosDisparo = pontosDisparo.slice(-50);
 
             plotarPontos();
             atualizarEstatisticas();
         }
+
         lastDetectionTime = now;
     }
 
-    // desenha indicação de calibração e ponto no preview para debug
-    // limpar preview borda
+
+
+    // ===========================================================
+    // 5) DEBUG VISUAL NO PREVIEW
+    // ===========================================================
+
+    // Caixa de borda para saber que o canvas está ativo
     camCtx.strokeStyle = "rgba(255,255,255,0.1)";
     camCtx.lineWidth = 1;
     camCtx.strokeRect(0,0,camPreview.width, camPreview.height);
 
+    // -- ponto de calibração no preview --
     if (calibrationCamPoint) {
         camCtx.beginPath();
         camCtx.fillStyle = "yellow";
-        camCtx.arc(calibrationCamPoint.x, calibrationCamPoint.y, 6, 0, Math.PI*2);
+        camCtx.arc(
+            ROI_CENTER_X + calibrationCamPoint.x,
+            ROI_CENTER_Y + calibrationCamPoint.y,
+            6, 0, Math.PI*2
+        );
         camCtx.fill();
     }
+
+    // -- ponto detectado --
     if (detected) {
         camCtx.beginPath();
         camCtx.fillStyle = "lime";
@@ -727,11 +796,19 @@ function mainLoop() {
         camCtx.fill();
     }
 
-    // redesenhar alvo (para manter consistência)
+
+    // ===========================================================
+    // 6) Redesenhar alvo (mantém consistência visual)
+    // ===========================================================
     plotarPontos();
 
+
+    // ===========================================================
+    // 7) Loop contínuo
+    // ===========================================================
     requestAnimationFrame(mainLoop);
 }
+
 
 /* ===================== START ===================== */
 desenharAlvo();

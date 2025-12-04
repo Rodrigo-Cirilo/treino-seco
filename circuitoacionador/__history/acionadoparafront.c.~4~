@@ -1,0 +1,102 @@
+#include <12F675.h>
+#fuses INTRC_IO, NOWDT, NOMCLR, NOPROTECT, NOCPD, NOPUT, NOBROWNOUT
+#use delay(internal=4MHz)
+
+// Definição dos pinos
+#define PIN_TRIGGER PIN_A1
+#define PIN_OUTPUT  PIN_A2
+#define PIN_BUTTON  PIN_A5
+
+//----------------------------------------------
+// Função para piscar a saída
+//----------------------------------------------
+void blink_output(int vezes) {
+    for(int i = 0; i < vezes; i++) {
+        output_high(PIN_OUTPUT);
+        delay_ms(50);
+        output_low(PIN_OUTPUT);
+        delay_ms(150);
+    }
+}
+
+//----------------------------------------------
+// Função para ler botão com debounce
+//----------------------------------------------
+int1 read_button_stable() {
+    if(!input(PIN_BUTTON)) {              // botão pressionado (nível 0)
+        delay_ms(20);                     // debounce
+        if(!input(PIN_BUTTON)) return 1;  // confirmado
+    }
+    return 0;
+}
+
+//----------------------------------------------
+// Programa principal
+//----------------------------------------------
+void main() {
+    int delay_trigger = 30;    // tempo inicial
+    int nivel = 1;             // nível atual (1 a 7)
+    int1 long_press_detected = 0;
+
+    setup_adc_ports(NO_ANALOGS);
+    setup_adc(ADC_OFF);
+    setup_comparator(NC_NC);
+
+    output_low(PIN_OUTPUT);
+
+    while(TRUE) {
+
+        //--------------------------------------------------
+        // VERIFICA SE BOTÃO FOI PRESSIONADO
+        //--------------------------------------------------
+        if(read_button_stable()) {
+
+            int counter = 0;
+
+            // Medir tempo que o botão fica pressionado
+            while(!input(PIN_BUTTON)) {
+                delay_ms(10);
+                counter++;
+
+                if(counter >= 5) { // 4 segundos
+                    long_press_detected = 1;
+                    break;
+                }
+            }
+
+            // Se for long press ? entra no modo loop
+            if(long_press_detected) {
+                while(TRUE) {
+                    output_high(PIN_OUTPUT);
+                    delay_ms(delay_trigger);
+                    output_low(PIN_OUTPUT);
+                    delay_ms(1000);
+                }
+            }
+
+            // Caso contrário ? incremento normal
+            nivel++;
+            if(nivel > 7) nivel = 1;
+
+            delay_trigger = 30 + (nivel - 1) * 10;
+
+            // Piscar para indicar o nível
+            blink_output(nivel);
+        }
+
+        //--------------------------------------------------
+        // VERIFICA TRIGGER
+        //--------------------------------------------------
+        if(input(PIN_TRIGGER)) {
+
+            // Espera subir e cair para evitar múltiplos triggers
+            while(input(PIN_TRIGGER));
+
+            // Aciona a saída pelo tempo programado
+            output_high(PIN_OUTPUT);
+            delay_ms(delay_trigger);
+            output_low(PIN_OUTPUT);
+        }
+    }
+}
+

@@ -1,0 +1,19 @@
+[PROJECT]
+Target=acionadoparafront.hex
+Processor_Text=PIC12F675
+CCSVersion=5.015
+Compiler=PCM
+[Target Data]
+FileList=acionadoparafront.c
+[Directories]
+Include=C:\Program Files (x86)\PICC\Devices\;C:\Program Files (x86)\PICC\Drivers\
+[acionadoparafront.c]
+Type=4
+[mru-list]
+1=acionadoparafront.c
+[Opened Files]
+1=acionadoparafront.c
+2=
+[Units]
+Count=1
+1=acionadoparafront (main)

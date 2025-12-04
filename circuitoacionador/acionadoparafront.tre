@@ -1,0 +1,14 @@
+ÀÄacionadoparafront
+   ÀÄMAIN  0/145  Ram=5
+      ÃÄ@cinit1  (Inline)  Ram=0
+      ÃÄread_button_stable  0/19  Ram=0
+      ³  ÀÄ@delay_ms1  0/20  Ram=1
+      ÃÄ@delay_ms1  0/20  Ram=1
+      ÃÄ@delay_ms1  0/20  Ram=1
+      ÃÄ@delay_ms1  0/20  Ram=1
+      ÃÄ@MUL88  0/37  Ram=2
+      ÃÄblink_output  0/22  Ram=1
+      ³  ÃÄ@delay_ms1  0/20  Ram=1
+      ³  ÀÄ@delay_ms1  0/20  Ram=1
+      ÃÄ@delay_ms1  0/20  Ram=1
+      ÀÄ@delay_ms1  0/20  Ram=1

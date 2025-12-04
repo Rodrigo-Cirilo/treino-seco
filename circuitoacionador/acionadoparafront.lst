@@ -1,0 +1,390 @@
+CCS PCM C Compiler, Version 5.015, 5967               03-dez-25 19:07
+
+               Filename:   C:\Users\Rodrigo\Documents\treino-seco\circuitoacionador\acionadoparafront.lst
+
+               ROM used:   253 words (25%)
+                           Largest free fragment is 771
+               RAM used:   9 (14%) at main() level
+                           13 (20%) worst case
+               Stack used: 2 locations
+               Stack size: 8
+
+*
+0000:  MOVLW  00
+0001:  MOVWF  0A
+0002:  GOTO   004
+0003:  NOP
+0004:  CALL   3FF
+0005:  BSF    03.5
+0006:  MOVWF  10
+0007:  MOVLW  00
+0008:  MOVWF  0A
+0009:  GOTO   06C
+.................... #include <12F675.h> 
+.................... //////////// Standard Header file for the PIC12F675 device //////////////// 
+.................... /////////////////////////////////////////////////////////////////////////// 
+.................... ////        (C) Copyright 1996, 2013 Custom Computer Services          //// 
+.................... //// This source code may only be used by licensed users of the CCS C  //// 
+.................... //// compiler.  This source code may only be distributed to other      //// 
+.................... //// licensed users of the CCS C compiler.  No other use, reproduction //// 
+.................... //// or distribution is permitted without written permission.          //// 
+.................... //// Derivative programs created using this software in object code    //// 
+.................... //// form are not restricted in any way.                               //// 
+.................... /////////////////////////////////////////////////////////////////////////// 
+.................... #device PIC12F675 
+*
+0031:  CLRF   20
+0032:  CLRF   21
+0033:  MOVF   2C,W
+0034:  BCF    03.0
+0035:  BTFSC  2D.0
+0036:  ADDWF  20,F
+0037:  RRF    20,F
+0038:  RRF    21,F
+0039:  BTFSC  2D.1
+003A:  ADDWF  20,F
+003B:  RRF    20,F
+003C:  RRF    21,F
+003D:  BTFSC  2D.2
+003E:  ADDWF  20,F
+003F:  RRF    20,F
+0040:  RRF    21,F
+0041:  BTFSC  2D.3
+0042:  ADDWF  20,F
+0043:  RRF    20,F
+0044:  RRF    21,F
+0045:  BTFSC  2D.4
+0046:  ADDWF  20,F
+0047:  RRF    20,F
+0048:  RRF    21,F
+0049:  BTFSC  2D.5
+004A:  ADDWF  20,F
+004B:  RRF    20,F
+004C:  RRF    21,F
+004D:  BTFSC  2D.6
+004E:  ADDWF  20,F
+004F:  RRF    20,F
+0050:  RRF    21,F
+0051:  BTFSC  2D.7
+0052:  ADDWF  20,F
+0053:  RRF    20,F
+0054:  RRF    21,F
+0055:  GOTO   0D9 (RETURN)
+....................  
+.................... #list 
+....................  
+.................... #fuses INTRC_IO, NOWDT, NOMCLR, NOPROTECT, NOCPD, NOPUT, NOBROWNOUT 
+.................... #use delay(internal=4MHz) 
+*
+000A:  MOVLW  2C
+000B:  MOVWF  04
+000C:  MOVF   00,W
+000D:  BTFSC  03.2
+000E:  GOTO   01D
+000F:  MOVLW  01
+0010:  MOVWF  21
+0011:  CLRF   20
+0012:  DECFSZ 20,F
+0013:  GOTO   012
+0014:  DECFSZ 21,F
+0015:  GOTO   011
+0016:  MOVLW  4A
+0017:  MOVWF  20
+0018:  DECFSZ 20,F
+0019:  GOTO   018
+001A:  GOTO   01B
+001B:  DECFSZ 00,F
+001C:  GOTO   00F
+001D:  RETURN
+....................  
+.................... // Definição dos pinos 
+.................... #define PIN_TRIGGER PIN_A1 
+.................... #define PIN_OUTPUT  PIN_A2 
+.................... #define PIN_BUTTON  PIN_A5 
+....................  
+.................... //---------------------------------------------- 
+.................... // Função para piscar a saída 
+.................... //---------------------------------------------- 
+.................... void blink_output(int vezes) { 
+....................     for(int i = 0; i < vezes; i++) { 
+*
+0056:  CLRF   2B
+0057:  MOVF   2A,W
+0058:  SUBWF  2B,W
+0059:  BTFSC  03.0
+005A:  GOTO   06B
+....................         output_high(PIN_OUTPUT); 
+005B:  BSF    03.5
+005C:  BCF    05.2
+005D:  BCF    03.5
+005E:  BSF    05.2
+....................         delay_ms(50); 
+005F:  MOVLW  32
+0060:  MOVWF  2C
+0061:  CALL   00A
+....................         output_low(PIN_OUTPUT); 
+0062:  BSF    03.5
+0063:  BCF    05.2
+0064:  BCF    03.5
+0065:  BCF    05.2
+....................         delay_ms(150); 
+0066:  MOVLW  96
+0067:  MOVWF  2C
+0068:  CALL   00A
+0069:  INCF   2B,F
+006A:  GOTO   057
+....................     } 
+006B:  GOTO   0DF (RETURN)
+.................... } 
+....................  
+.................... //---------------------------------------------- 
+.................... // Função para ler botão com debounce 
+.................... //---------------------------------------------- 
+.................... int1 read_button_stable() { 
+....................     if(!input(PIN_BUTTON)) {              // botão pressionado (nível 0) 
+*
+001E:  BSF    03.5
+001F:  BSF    05.5
+0020:  BCF    03.5
+0021:  BTFSC  05.5
+0022:  GOTO   02E
+....................         delay_ms(20);                     // debounce 
+0023:  MOVLW  14
+0024:  MOVWF  2C
+0025:  CALL   00A
+....................         if(!input(PIN_BUTTON)) return 1;  // confirmado 
+0026:  BSF    03.5
+0027:  BSF    05.5
+0028:  BCF    03.5
+0029:  BTFSC  05.5
+002A:  GOTO   02E
+002B:  MOVLW  01
+002C:  MOVWF  21
+002D:  GOTO   030
+....................     } 
+....................     return 0; 
+002E:  MOVLW  00
+002F:  MOVWF  21
+0030:  GOTO   098 (RETURN)
+.................... } 
+....................  
+.................... //---------------------------------------------- 
+.................... // Programa principal 
+.................... //---------------------------------------------- 
+.................... void main() { 
+*
+006C:  MOVF   03,W
+006D:  ANDLW  1F
+006E:  MOVWF  03
+006F:  BCF    1F.6
+0070:  BSF    03.5
+0071:  BCF    1F.0
+0072:  BCF    1F.1
+0073:  BCF    1F.2
+0074:  BCF    1F.3
+0075:  MOVLW  07
+0076:  BCF    03.5
+0077:  MOVWF  19
+0078:  MOVLW  1E
+0079:  MOVWF  25
+007A:  MOVLW  01
+007B:  MOVWF  26
+007C:  BCF    27.0
+....................     int delay_trigger = 30;    // tempo inicial 
+....................     int nivel = 1;             // nível atual (1 a 7) 
+....................     int1 long_press_detected = 0; 
+....................  
+....................     setup_adc_ports(NO_ANALOGS); 
+007D:  BCF    1F.6
+007E:  BSF    03.5
+007F:  BCF    1F.0
+0080:  BCF    1F.1
+0081:  BCF    1F.2
+0082:  BCF    1F.3
+....................     setup_adc(ADC_OFF); 
+0083:  BCF    03.5
+0084:  BCF    1F.0
+....................     setup_comparator(NC_NC); 
+0085:  MOVLW  07
+0086:  MOVWF  19
+0087:  BSF    03.5
+0088:  MOVF   05,W
+0089:  MOVWF  05
+008A:  MOVLW  02
+008B:  BCF    03.5
+008C:  MOVWF  20
+008D:  DECFSZ 20,F
+008E:  GOTO   08D
+008F:  GOTO   090
+0090:  NOP
+0091:  MOVF   19,W
+0092:  BCF    0C.3
+....................  
+....................     output_low(PIN_OUTPUT); 
+0093:  BSF    03.5
+0094:  BCF    05.2
+0095:  BCF    03.5
+0096:  BCF    05.2
+....................  
+....................     while(TRUE) { 
+....................  
+....................         //-------------------------------------------------- 
+....................         // VERIFICA SE BOTÃO FOI PRESSIONADO 
+....................         //-------------------------------------------------- 
+....................         if(read_button_stable()) { 
+0097:  GOTO   01E
+0098:  MOVF   21,F
+0099:  BTFSC  03.2
+009A:  GOTO   0DF
+....................  
+....................             int16  counter = 0; 
+009B:  CLRF   29
+009C:  CLRF   28
+....................  
+....................             // Medir tempo que o botão fica pressionado 
+....................             while(!input(PIN_BUTTON)) { 
+009D:  BSF    03.5
+009E:  BSF    05.5
+009F:  BCF    03.5
+00A0:  BTFSC  05.5
+00A1:  GOTO   0B6
+....................                 delay_ms(10); 
+00A2:  MOVLW  0A
+00A3:  MOVWF  2C
+00A4:  CALL   00A
+....................                 counter++; 
+00A5:  INCF   28,F
+00A6:  BTFSC  03.2
+00A7:  INCF   29,F
+....................  
+....................                 if(counter >= 400) { // 4 segundos 
+00A8:  MOVF   29,W
+00A9:  SUBLW  00
+00AA:  BTFSC  03.0
+00AB:  GOTO   0B5
+00AC:  XORLW  FF
+00AD:  BTFSS  03.2
+00AE:  GOTO   0B3
+00AF:  MOVF   28,W
+00B0:  SUBLW  8F
+00B1:  BTFSC  03.0
+00B2:  GOTO   0B5
+....................                     long_press_detected = 1; 
+00B3:  BSF    27.0
+....................                     break; 
+00B4:  GOTO   0B6
+....................                 } 
+00B5:  GOTO   09D
+....................             } 
+....................  
+....................             // Se for long press ? entra no modo loop 
+....................             if(long_press_detected) { 
+00B6:  BTFSS  27.0
+00B7:  GOTO   0CB
+....................                 while(TRUE) { 
+....................                     output_high(PIN_OUTPUT); 
+00B8:  BSF    03.5
+00B9:  BCF    05.2
+00BA:  BCF    03.5
+00BB:  BSF    05.2
+....................                     delay_ms(delay_trigger); 
+00BC:  MOVF   25,W
+00BD:  MOVWF  2C
+00BE:  CALL   00A
+....................                     output_low(PIN_OUTPUT); 
+00BF:  BSF    03.5
+00C0:  BCF    05.2
+00C1:  BCF    03.5
+00C2:  BCF    05.2
+....................                     delay_ms(1000); 
+00C3:  MOVLW  04
+00C4:  MOVWF  2A
+00C5:  MOVLW  FA
+00C6:  MOVWF  2C
+00C7:  CALL   00A
+00C8:  DECFSZ 2A,F
+00C9:  GOTO   0C5
+00CA:  GOTO   0B8
+....................                 } 
+....................             } 
+....................  
+....................             // Caso contrário ? incremento normal 
+....................             nivel++; 
+00CB:  INCF   26,F
+....................             if(nivel > 7) nivel = 1; 
+00CC:  MOVF   26,W
+00CD:  SUBLW  07
+00CE:  BTFSC  03.0
+00CF:  GOTO   0D2
+00D0:  MOVLW  01
+00D1:  MOVWF  26
+....................  
+....................             delay_trigger = 30 + (nivel - 1) * 10; 
+00D2:  MOVLW  01
+00D3:  SUBWF  26,W
+00D4:  MOVWF  2B
+00D5:  MOVWF  2C
+00D6:  MOVLW  0A
+00D7:  MOVWF  2D
+00D8:  GOTO   031
+00D9:  MOVF   21,W
+00DA:  ADDLW  1E
+00DB:  MOVWF  25
+....................  
+....................             // Piscar para indicar o nível 
+....................             blink_output(nivel); 
+00DC:  MOVF   26,W
+00DD:  MOVWF  2A
+00DE:  GOTO   056
+....................         } 
+....................  
+....................         //-------------------------------------------------- 
+....................         // VERIFICA TRIGGER 
+....................         //-------------------------------------------------- 
+....................         if(input(PIN_TRIGGER)) { 
+00DF:  BSF    03.5
+00E0:  BSF    05.1
+00E1:  BCF    03.5
+00E2:  BTFSS  05.1
+00E3:  GOTO   0FB
+....................  
+....................             // Espera subir e cair para evitar múltiplos triggers 
+....................             while(input(PIN_TRIGGER)); 
+00E4:  BSF    03.5
+00E5:  BSF    05.1
+00E6:  BCF    03.5
+00E7:  BTFSC  05.1
+00E8:  GOTO   0E4
+....................  
+....................             // Aciona a saída pelo tempo programado 
+....................             output_high(PIN_OUTPUT); 
+00E9:  BSF    03.5
+00EA:  BCF    05.2
+00EB:  BCF    03.5
+00EC:  BSF    05.2
+....................             delay_ms(delay_trigger); 
+00ED:  MOVF   25,W
+00EE:  MOVWF  2C
+00EF:  CALL   00A
+....................             output_low(PIN_OUTPUT); 
+00F0:  BSF    03.5
+00F1:  BCF    05.2
+00F2:  BCF    03.5
+00F3:  BCF    05.2
+....................             delay_ms(500); 
+00F4:  MOVLW  02
+00F5:  MOVWF  2A
+00F6:  MOVLW  FA
+00F7:  MOVWF  2C
+00F8:  CALL   00A
+00F9:  DECFSZ 2A,F
+00FA:  GOTO   0F6
+....................         } 
+00FB:  GOTO   097
+....................     } 
+.................... } 
+....................  
+00FC:  SLEEP
+
+Configuration Fuses:
+   Word  1: 3F94   INTRC_IO NOWDT NOPUT NOMCLR NOBROWNOUT NOPROTECT NOCPD
