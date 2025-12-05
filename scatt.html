@@ -273,7 +273,7 @@
                 </div>
                 <div class="slidecontainer">                    
                     <span>Sensibilidade da detecção:</span> <span id="sensibilidade"></span>
-                    <input type="range" min="200" max="240" value="220" class="slider" id="myRange" step="0.5">
+                    <input type="range" min="100" max="240" value="220" class="slider" id="myRange" step="0.5">
                 </div>
                 
                 <div class="control-group">
@@ -410,36 +410,75 @@ const config = {
 
 let dragging = false;
 let startX = 0, startY = 0;
-let currentX = -50, currentY = -50; // a div começa com translate(-50%, -50%)
+let currentX = -50, currentY = -50;
 
-divPreview.addEventListener("mousedown", (e) => {
+// Função para obter coordenadas tanto de mouse quanto de toque
+function getPos(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+}
+
+// -------------------- START --------------------
+function dragStart(e) {
+    const pos = getPos(e);
+
     dragging = true;
-    startX = e.clientX;
-    startY = e.clientY;
-});
+    startX = pos.x;
+    startY = pos.y;
 
-document.addEventListener("mousemove", (e) => {
+    e.preventDefault(); // evita scroll/zoom em celular
+}
+
+divPreview.addEventListener("mousedown", dragStart);
+divPreview.addEventListener("touchstart", dragStart, { passive: false });
+
+// -------------------- MOVE --------------------
+function dragMove(e) {
     if (!dragging) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    const pos = getPos(e);
+
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
 
     divPreview.style.transform = `translate(${currentX + dx}px, ${currentY + dy}px)`;
-});
 
-document.addEventListener("mouseup", (e) => {
+    e.preventDefault();
+}
+
+document.addEventListener("mousemove", dragMove);
+document.addEventListener("touchmove", dragMove, { passive: false });
+
+// -------------------- END --------------------
+function dragEnd(e) {
     if (!dragging) return;
 
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
+    // Para touchend, e.touches costuma estar vazio — usar changedTouches
+    let pos;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+        pos = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    } else {
+        pos = getPos(e); // fallback para mouse
+    }
+
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
 
     currentX += dx;
     currentY += dy;
 
     dragging = false;
+
     localStorage.setItem("divPreviewX", currentX);
     localStorage.setItem("divPreviewY", currentY);
-});
+}
+
+
+document.addEventListener("mouseup", dragEnd);
+document.addEventListener("touchend", dragEnd);
+
 
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -822,7 +861,7 @@ function calculateScore(distance_mm) {
 function mainLoop() {
 
     if(calibrandoIluminacao) return; // se estiver calibrando iluminação, não faz nada.
-    console.log("Main loop running");
+   
 
     // ===========================================================
     // 1) Desenha frame da câmera
