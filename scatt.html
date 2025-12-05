@@ -69,6 +69,13 @@
         .btn-primary:hover {
             background: #0056b3;
         }
+        .btn-green {
+            background: #28a745;
+            color: white;
+        }
+        .btn-green:hover {
+            background: #1e7e34;
+        }
         .btn-secondary {
             background: #6c757d;
             color: white;
@@ -259,12 +266,14 @@
                 <div class="control-group">
                     <h3>🔧 Calibração</h3>
                     <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
+                    <button id="btnCalibrarIluminacao" class="btn-green">Calibrar iluminação</button>
+
                     <div id="status" class="status-ready">Sistema pronto.</div>
                     
                 </div>
                 <div class="slidecontainer">                    
                     <span>Sensibilidade da detecção:</span> <span id="sensibilidade"></span>
-                    <input type="range" min="200" max="240" value="220" class="slider" id="myRange">
+                    <input type="range" min="200" max="240" value="220" class="slider" id="myRange" step="0.5">
                 </div>
                 
                 <div class="control-group">
@@ -375,7 +384,7 @@ const divPreview = document.getElementById("containerPreview");
 
 let modoCalibracao = false;
 let lastDetectionTime = 0;
-
+let calibrandoIluminacao = false;
 /* Valores padrão do alvo (mesmos do seu script) */
 const DEFAULT_ALVO_PX = {
     "7": 600,
@@ -664,7 +673,7 @@ btnLimpar.onclick = () => {
 };
 
 sensitivitySlider.oninput = () => {
-    const val = parseInt(sensitivitySlider.value);
+    const val = parseFloat(sensitivitySlider.value);
     sensitivityValue.textContent = val;   
     THRESHOLD = val;
     localStorage.setItem("sensitivity", val);
@@ -763,26 +772,36 @@ function detectLaser(imgData, w, h) {
     let maxG = 0;
     let px = null, py = null;
 
-    const TH = THRESHOLD;  // use sua constante
+    const TH = THRESHOLD;
 
     for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i+1];
-        const b = data[i+2];
+        
+        const index = i / 4;
+        const x = index % w;
+        const y = Math.floor(index / w);
 
-        // olhar só para o verde, desprezar outras cores
+        // ---------------------------
+        // FILTRO DO ROI CIRCULAR
+        // ---------------------------
+        const dx = x - ROI_CENTER_X;
+        const dy = y - ROI_CENTER_Y;
+        if (dx*dx + dy*dy > ROI_RADIUS * ROI_RADIUS) continue;
+
+        // ---------------------------
+        // FILTRO DO LASER (VERDE)
+        // ---------------------------
+        const g = data[i+1];
         if (g > TH && g > maxG) {
             maxG = g;
-
-            const index = i / 4;
-            px = index % w;
-            py = Math.floor(index / w);
+            px = x;
+            py = y;
         }
     }
 
     if (px === null) return null;
     return { x: px, y: py };
 }
+
 
 
 
@@ -799,7 +818,11 @@ function calculateScore(distance_mm) {
 }
 
 /* Main loop: desenha preview da câmera, detecta ponto, faz calibração e registra tiros */
+
 function mainLoop() {
+
+    if(calibrandoIluminacao) return; // se estiver calibrando iluminação, não faz nada.
+    console.log("Main loop running");
 
     // ===========================================================
     // 1) Desenha frame da câmera
@@ -812,16 +835,16 @@ function mainLoop() {
         // agora com bordas escuras para não serem detectadas
         // ----------------------------
         camCtx.beginPath();
-        camCtx.strokeStyle = "rgba(30,30,30,0.9)";   // Borda escura (não estoura THRESHOLD)
-        camCtx.lineWidth = 3;
+        camCtx.strokeStyle = "rgba(0, 120, 255, 0.9)"; // azul vibrante
+        camCtx.lineWidth = 0.2;                       // linha fina
         camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
         camCtx.stroke();
 
         // sombra interna leve que NÃO interfere na detecção
-        camCtx.beginPath();
-        camCtx.fillStyle = "rgba(0,0,0,0.10)";
-        camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
-        camCtx.fill();
+        // camCtx.beginPath();
+        // camCtx.fillStyle = "rgba(0,0,0,0.10)";
+        // camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
+        // camCtx.fill();
 
     } catch (e) {
         // imagem ainda não carregou
@@ -914,7 +937,7 @@ function mainLoop() {
         camCtx.arc(
             ROI_CENTER_X + calibrationCamPoint.x,
             ROI_CENTER_Y + calibrationCamPoint.y,
-            6, 0, Math.PI*2
+            2, 0, Math.PI*2 //tamanho do ponto amarelo
         );
         camCtx.fill();
     }
@@ -923,7 +946,7 @@ function mainLoop() {
     if (detected) {
         camCtx.beginPath();
         camCtx.fillStyle = "lime";
-        camCtx.arc(detected.x, detected.y, 4, 0, Math.PI*2);
+        camCtx.arc(detected.x, detected.y, 2, 0, Math.PI*2);
         camCtx.fill();
     }
 
@@ -939,6 +962,147 @@ function mainLoop() {
     // ===========================================================
     requestAnimationFrame(mainLoop);
 }
+
+
+async function medirRuidoBackground() {
+    return new Promise(resolve => {
+        let gMax = 0;
+        let frames = 0;
+
+        function coletar() {
+            const img = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
+            const data = img.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+
+                const index = i / 4;
+                const x = index % camPreview.width;
+                const y = Math.floor(index / camPreview.width);
+
+                // FILTRAR APENAS ROI
+                const dx = x - ROI_CENTER_X;
+                const dy = y - ROI_CENTER_Y;
+                if (dx*dx + dy*dy > ROI_RADIUS*ROI_RADIUS) continue;
+
+                const g = data[i + 1];
+                if (g > gMax) gMax = g;
+            }
+
+            frames++;
+
+            if (frames >= 60) {
+                resolve(gMax);
+            } else {
+                requestAnimationFrame(coletar);
+            }
+        }
+
+        coletar();
+    });
+}
+
+
+async function detectaRuidoComThreshold(th) {
+    return new Promise(resolve => {
+        let frames = 0;
+        let detectou = false;
+
+        function ciclo() {
+            const img = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
+            const data = img.data;
+
+            for (let i = 0; i < data.length; i += 4) {
+
+                const index = i / 4;
+                const x = index % camPreview.width;
+                const y = Math.floor(index / camPreview.width);
+
+                // FILTRAR APENAS ROI
+                const dx = x - ROI_CENTER_X;
+                const dy = y - ROI_CENTER_Y;
+                if (dx*dx + dy*dy > ROI_RADIUS*ROI_RADIUS) continue;
+
+                const g = data[i + 1];
+                if (g > th) {
+                    detectou = true;
+                    break;
+                }
+            }
+
+            frames++;
+
+            if (frames >= 15 || detectou) {
+                resolve(detectou);
+                return;
+            }
+
+            requestAnimationFrame(ciclo);
+        }
+
+        ciclo();
+    });
+}
+
+
+async function calibrarIluminacaoInteligente() {
+
+    atualizarStatus("Calibrando iluminação...", "status-calibrating");
+    btnCalibrarIluminacao.disabled = true;
+
+    // (1) Medir ruído real
+    const ruido = await medirRuidoBackground();
+
+    // (2) Valor base seguro
+    const base = ruido + 5;
+
+    let threshold = base + 20;
+    let ruidoDetectado = false;
+
+    // (3) Descer até achar ruído
+    while (threshold > base) {
+        const r = await detectaRuidoComThreshold(threshold);
+
+        if (r) {
+            ruidoDetectado = true;
+            break;
+        }
+
+        threshold -= 0.5;
+    }
+
+    // (4) Volta um valor seguro
+    if (ruidoDetectado) threshold += 1.0;
+
+    // (5) Confirma
+    const confirm = await detectaRuidoComThreshold(threshold);
+    if (confirm) threshold += 0.5;
+
+    // (6) Aplicar final
+    THRESHOLD = threshold;
+
+    // (7) Atualizar UI existente
+    sensitivitySlider.step = "0.1";
+    sensitivitySlider.value = THRESHOLD.toFixed(1);
+    sensitivityValue.textContent = THRESHOLD.toFixed(1);
+
+    localStorage.setItem("sensitivity", THRESHOLD);
+
+    atualizarStatus("Calibração concluída.", "status-ready");
+    btnCalibrarIluminacao.disabled = false;
+    calibrandoIluminacao = false;
+    requestAnimationFrame(mainLoop);
+}
+
+
+btnCalibrarIluminacao.onclick = async () => {
+    if (!cameraFrameOK) {
+        atualizarStatus("Câmera indisponível. Não é possível calibrar.", "status-error");
+        return;
+    }
+    calibrandoIluminacao = true;
+    await calibrarIluminacaoInteligente();
+};
+
 
 
 /* ===================== START ===================== */
