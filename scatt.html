@@ -188,40 +188,7 @@
 
 
 
-        .slidecontainer {
-            width: 100%;
-        }
-
-        .slider {
-            -webkit-appearance: none;
-            width: 100%;
-            height: 25px;
-            background: #d3d3d3;
-            outline: none;
-            opacity: 0.7;
-            -webkit-transition: .2s;
-            transition: opacity .2s;
-        }
-
-        .slider:hover {
-            opacity: 1;
-        }
-
-        .slider::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            appearance: none;
-            width: 25px;
-            height: 25px;
-            background: #04AA6D;
-            cursor: pointer;
-        }
-
-        .slider::-moz-range-thumb {
-            width: 25px;
-            height: 25px;
-            background: #04AA6D;
-            cursor: pointer;
-        }
+       
         #containerPreview{
             display: flex;
             flex-direction: column;
@@ -234,6 +201,41 @@
             left: 50%;
             transform: translateX(-50%);
             cursor: grabbing;
+        }
+        .sensibilidade-manual {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .sens-val {
+            font-size: 22px;
+            font-weight: bold;
+            display: block;
+            margin: 5px 0 10px 0;
+        }
+
+        .sens-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn-sens {
+            width: 60px;
+            height: 45px;
+            font-size: 28px;
+            font-weight: bold;
+            border-radius: 8px;
+            background: #04AA6D;
+            color: white;
+            border: none;
+        }
+        .btn-sens:active {
+            transform: scale(0.95);
+        }
+
+        #btnSensMais, #btnSensMenos {
+            padding: 7px 20px;
         }
 
     
@@ -265,15 +267,21 @@
                 <div class="control-group">
                     <h3>🔧 Calibração</h3>
                     <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
-                    <button id="btnCalibrarIluminacao" class="btn-green">Calibrar iluminação</button>
+                   
 
                     <div id="status" class="status-ready">Sistema pronto.</div>
                     
                 </div>
-                <div class="slidecontainer">                    
-                    <span>Sensibilidade da detecção:</span> <span id="sensibilidade"></span>
-                    <input type="range" min="100" max="240" value="220" class="slider" id="myRange" step="0.5">
+                <div class="sensibilidade-manual" style="margin-bottom: 10px;">
+                    <span>Sensibilidade:</span>
+                    <input type="number" id="labelSensManual" class="sens-val" value="220">
+
+                    <div class="sens-buttons">
+                        <button id="btnSensMenos" class="btn-sens"> - </button>
+                        <button id="btnSensMais" class="btn-sens"> + </button>
+                    </div>
                 </div>
+              
                 <input style="font-size: 16px;" id="cameraIPInput" type="text" class="camera-ip" value="192.168.1.4">
                 <button style="background-color: green;" id="btnConectarCamera">Conectar</button>
                 
@@ -378,7 +386,7 @@ const cameraIPInput = document.getElementById("cameraIPInput");
 const timerDisplay = document.getElementById("timerDisplay");
 const btnStartPause = document.getElementById("btnStartPause");
 const btnResetTimer = document.getElementById("btnResetTimer");
-const sensitivitySlider = document.getElementById("myRange");
+
 const sensitivityValue = document.getElementById("sensibilidade");
 const divPreview = document.getElementById("containerPreview");
 
@@ -483,9 +491,8 @@ document.addEventListener("touchend", dragEnd);
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    sensitivityValue.textContent = localStorage.getItem("sensitivity") || "220";
-    THRESHOLD = parseInt(sensitivityValue.textContent);
-    sensitivitySlider.value = THRESHOLD;
+    const saved = parseFloat(localStorage.getItem("sensitivity") || 220);
+    atualizarSensibilidade(saved);
     const savedX = localStorage.getItem("divPreviewX");
     const savedY = localStorage.getItem("divPreviewY");
 
@@ -496,12 +503,78 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 });
 
+const labelSensManual = document.getElementById("labelSensManual");
+const btnSensMais = document.getElementById("btnSensMais");
+const btnSensMenos = document.getElementById("btnSensMenos");
+
+function atualizarSensibilidade(val) {
+    val = Math.max(0, Math.min(255, val)); // segurança
+    THRESHOLD = val;
+    
+    // atualiza UI
+    labelSensManual.value = val;
+    
+    // salva
+    localStorage.setItem("sensitivity", val);
+}
+let holdInterval = null;
+
+function startHold(step) {
+    // aplica imediatamente
+    atualizarSensibilidade(parseFloat(THRESHOLD) + step);
+
+    // inicia repetição
+    holdInterval = setInterval(() => {
+        atualizarSensibilidade(parseFloat(THRESHOLD) + step);
+    }, 100); // repete a cada 100ms (ajustável)
+}
+
+function stopHold() {
+    clearInterval(holdInterval);
+    holdInterval = null;
+}
+
+// BOTÃO + 
+btnSensMais.addEventListener("mousedown", () => startHold(+0.5));
+btnSensMais.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startHold(+0.5);
+}, { passive: false });
+
+btnSensMais.addEventListener("mouseup", stopHold);
+btnSensMais.addEventListener("mouseleave", stopHold);
+btnSensMais.addEventListener("touchend", stopHold);
+btnSensMais.addEventListener("touchcancel", stopHold);
+
+// BOTÃO -
+btnSensMenos.addEventListener("mousedown", () => startHold(-0.5));
+btnSensMenos.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startHold(-0.5);
+}, { passive: false });
+
+btnSensMenos.addEventListener("mouseup", stopHold);
+btnSensMenos.addEventListener("mouseleave", stopHold);
+btnSensMenos.addEventListener("touchend", stopHold);
+btnSensMenos.addEventListener("touchcancel", stopHold);
+
+
+
+
+
+
+
+
+
+
+
 
 /* ===================== PREVIEW DA CÂMERA (MJPEG) ===================== */
 const camPreview = document.getElementById("cameraPreview");
 const camCtx = camPreview.getContext("2d", { willReadFrequently: true });
 const camImg = new Image();
 let mjpegReaderAbort = false;
+
 
 // Start MJPEG by setting src to the MJPEG endpoint. Many MJPEG endpoints can be loaded as <img>.
 function startMJPEG() {
@@ -712,12 +785,7 @@ btnLimpar.onclick = () => {
     atualizarEstatisticas();
 };
 
-sensitivitySlider.oninput = () => {
-    const val = parseFloat(sensitivitySlider.value);
-    sensitivityValue.textContent = val;   
-    THRESHOLD = val;
-    localStorage.setItem("sensitivity", val);
-};
+
 
 btnConectarCamera.onclick = () => {
     const ip = cameraIPInput.value.trim();
@@ -910,7 +978,7 @@ function mainLoop() {
         // agora com bordas escuras para não serem detectadas
         // ----------------------------
         camCtx.beginPath();
-        camCtx.strokeStyle = "rgba(0, 120, 255, 0.9)"; // azul vibrante
+        camCtx.strokeStyle = "red"; // azul vibrante
         camCtx.lineWidth = 0.2;                       // linha fina
         camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
         camCtx.stroke();
@@ -1038,145 +1106,6 @@ function mainLoop() {
     requestAnimationFrame(mainLoop);
 }
 
-
-async function medirRuidoBackground() {
-    return new Promise(resolve => {
-        let gMax = 0;
-        let frames = 0;
-
-        function coletar() {
-            const img = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
-            const data = img.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-
-                const index = i / 4;
-                const x = index % camPreview.width;
-                const y = Math.floor(index / camPreview.width);
-
-                // FILTRAR APENAS ROI
-                const dx = x - ROI_CENTER_X;
-                const dy = y - ROI_CENTER_Y;
-                if (dx*dx + dy*dy > ROI_RADIUS*ROI_RADIUS) continue;
-
-                const g = data[i + 1];
-                if (g > gMax) gMax = g;
-            }
-
-            frames++;
-
-            if (frames >= 60) {
-                resolve(gMax);
-            } else {
-                requestAnimationFrame(coletar);
-            }
-        }
-
-        coletar();
-    });
-}
-
-
-async function detectaRuidoComThreshold(th) {
-    return new Promise(resolve => {
-        let frames = 0;
-        let detectou = false;
-
-        function ciclo() {
-            const img = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
-            const data = img.data;
-
-            for (let i = 0; i < data.length; i += 4) {
-
-                const index = i / 4;
-                const x = index % camPreview.width;
-                const y = Math.floor(index / camPreview.width);
-
-                // FILTRAR APENAS ROI
-                const dx = x - ROI_CENTER_X;
-                const dy = y - ROI_CENTER_Y;
-                if (dx*dx + dy*dy > ROI_RADIUS*ROI_RADIUS) continue;
-
-                const g = data[i + 1];
-                if (g > th) {
-                    detectou = true;
-                    break;
-                }
-            }
-
-            frames++;
-
-            if (frames >= 15 || detectou) {
-                resolve(detectou);
-                return;
-            }
-
-            requestAnimationFrame(ciclo);
-        }
-
-        ciclo();
-    });
-}
-
-
-async function calibrarIluminacaoInteligente() {
-
-    atualizarStatus("Calibrando iluminação...", "status-calibrating");
-    btnCalibrarIluminacao.disabled = true;
-
-    // (1) Medir ruído real
-    const ruido = await medirRuidoBackground();
-
-    // (2) Valor base seguro
-    const base = ruido + 5;
-
-    let threshold = base + 20;
-    let ruidoDetectado = false;
-
-    // (3) Descer até achar ruído
-    while (threshold > base) {
-        const r = await detectaRuidoComThreshold(threshold);
-
-        if (r) {
-            ruidoDetectado = true;
-            break;
-        }
-
-        threshold -= 0.5;
-    }
-
-    // (4) Volta um valor seguro
-    if (ruidoDetectado) threshold += 1.0;
-
-    // (5) Confirma
-    const confirm = await detectaRuidoComThreshold(threshold);
-    if (confirm) threshold += 0.5;
-
-    // (6) Aplicar final
-    THRESHOLD = threshold;
-
-    // (7) Atualizar UI existente
-    sensitivitySlider.step = "0.1";
-    sensitivitySlider.value = THRESHOLD.toFixed(1);
-    sensitivityValue.textContent = THRESHOLD.toFixed(1);
-
-    localStorage.setItem("sensitivity", THRESHOLD);
-
-    atualizarStatus("Calibração concluída.", "status-ready");
-    btnCalibrarIluminacao.disabled = false;
-    calibrandoIluminacao = false;
-    requestAnimationFrame(mainLoop);
-}
-
-
-btnCalibrarIluminacao.onclick = async () => {
-    if (!cameraFrameOK) {
-        atualizarStatus("Câmera indisponível. Não é possível calibrar.", "status-error");
-        return;
-    }
-    calibrandoIluminacao = true;
-    await calibrarIluminacaoInteligente();
-};
 
 
 
