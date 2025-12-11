@@ -150,6 +150,7 @@ function startMJPEG(url) {
       cameraFrameOK = true;
       mjpegStarted = true;
       atualizarStatus("Câmera conectada com sucesso.", "status-ready");
+      modalConnectMsg.textContent = "Câmera conectada!";
       // enable next button in modal
       modalNextBtn.disabled = false;
     };
@@ -424,13 +425,26 @@ function desenharAlvo() {
 function plotarPontos() {
   desenharAlvo();
   ctxAlvo.save();
-  pontosDisparo.forEach((pt,i)=>{
-    const pX = canvasAlvo.width/2 + pt.dx;
-    const pY = canvasAlvo.height/2 + pt.dy;
+  pontosDisparo.forEach((pt, i) => {
+    const pX = canvasAlvo.width / 2 + pt.dx;
+    const pY = canvasAlvo.height / 2 + pt.dy;
+
+    // círculo vermelho
     ctxAlvo.beginPath();
-    ctxAlvo.fillStyle="red";
-    ctxAlvo.arc(pX,pY,7.5,0,Math.PI*2); ctxAlvo.fill();
-    ctxAlvo.strokeStyle="white"; ctxAlvo.lineWidth=1; ctxAlvo.stroke();
+    ctxAlvo.fillStyle = "red";
+    ctxAlvo.arc(pX, pY, 7.5, 0, Math.PI * 2);
+    ctxAlvo.fill();
+
+    ctxAlvo.strokeStyle = "white";
+    ctxAlvo.lineWidth = 1;
+    ctxAlvo.stroke();
+
+    // 🔥 número do tiro
+    ctxAlvo.fillStyle = "white";
+    ctxAlvo.font = "10px Arial";
+    ctxAlvo.textAlign = "center";
+    ctxAlvo.textBaseline = "middle";
+    ctxAlvo.fillText(i + 1, pX, pY);
   });
   ctxAlvo.restore();
 }
