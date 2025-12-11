@@ -1,0 +1,1119 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>SCATT DIY - Treinamento a Seco</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        .main-content {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+        .canvas-container {
+            flex: 1;
+            text-align: center;
+            position: relative;
+        }
+        canvas {
+            border: 2px solid #333;
+            background: #fff;
+            cursor: crosshair;
+        }
+        .controls-panel {
+            width: 300px;
+            background: #f8f8f8;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        .control-group {
+            margin-bottom: 20px;
+        }
+        .control-group h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 16px;
+        }
+        button {
+            padding: 12px 20px;
+            margin: 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #0056b3;
+        }
+        .btn-green {
+            background: #28a745;
+            color: white;
+        }
+        .btn-green:hover {
+            background: #1e7e34;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        #status {
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        .status-ready {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status-calibrating {
+            background: #fff3cd;
+            color: #856404;
+        }
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .stats-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+        }
+        .score-display {
+            font: 20px;
+            font-weight: bold;
+            text-align: center;
+            padding: 15px;
+            background: #007bff;
+            color: white;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .connected {
+            background: #28a745;
+            color: white;
+        }
+        .disconnected {
+            background: #dc3545;
+            color: white;
+        }
+        .shot-history {
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            background: white;
+        }
+        .shot-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .shot-item:last-child {
+            border-bottom: none;
+        }
+        .timer-display {
+            font-size: 35px;
+            font-weight: bold;
+            text-align: center;
+            padding: 10px;
+            background: #e9ecef;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        /* Camera preview small */
+        #cameraPreview {
+            width: 320px;
+            height: 180px;
+            border: 2px solid #333;           
+            background: #000;
+            cursor: grabbing;
+        }
+
+
+
+       
+        #containerPreview{
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-top: 10px;
+            border: 1px solid black;
+            padding: 5px;
+            border-radius: 3px;
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            cursor: grabbing;
+        }
+        .sensibilidade-manual {
+            margin-top: 15px;
+            text-align: center;
+        }
+
+        .sens-val {
+            font-size: 22px;
+            font-weight: bold;
+            display: block;
+            margin: 5px 0 10px 0;
+        }
+
+        .sens-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn-sens {
+            width: 60px;
+            height: 45px;
+            font-size: 28px;
+            font-weight: bold;
+            border-radius: 8px;
+            background: #04AA6D;
+            color: white;
+            border: none;
+        }
+        .btn-sens:active {
+            transform: scale(0.95);
+        }
+
+        #btnSensMais, #btnSensMenos {
+            padding: 7px 20px;
+        }
+
+    
+
+
+
+       
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 SCATT DIY - Sistema de Treinamento a Seco</h1>
+        
+        <div class="main-content">
+            <div class="canvas-container">
+                <canvas id="alvo" width="600" height="600"></canvas>
+                
+
+                <!-- camera preview (small) -->
+                <div id="containerPreview"">
+                    <canvas id="cameraPreview" width="320" height="180"></canvas>
+                    <div style="display: block">
+                        
+                    </div>
+                </div> 
+            </div>
+            
+            <div class="controls-panel">
+                <div class="control-group">
+                    <h3>🔧 Calibração</h3>
+                    <button id="btnCalibrar" class="btn-primary">Iniciar Calibração</button>
+                   
+
+                    <div id="status" class="status-ready">Sistema pronto.</div>
+                    
+                </div>
+                <div class="sensibilidade-manual" style="margin-bottom: 10px;">
+                    <span>Sensibilidade:</span>
+                    <input type="number" id="labelSensManual" class="sens-val" value="220">
+
+                    <div class="sens-buttons">
+                        <button id="btnSensMenos" class="btn-sens"> - </button>
+                        <button id="btnSensMais" class="btn-sens"> + </button>
+                    </div>
+                </div>
+              
+                <input style="font-size: 16px;" id="cameraIPInput" type="text" class="camera-ip" value="192.168.1.4">
+                <button style="background-color: green;" id="btnConectarCamera">Conectar</button>
+                
+                <div class="control-group">
+                    <h3>⏱ Temporizador</h3>
+                    <div class="timer-display" id="timerDisplay">00:00:00</div>
+                    <button id="btnStartPause" class="btn-primary">Iniciar</button>
+                    <button id="btnResetTimer" class="btn-secondary">Resetar</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📊 Pontuação</h3>
+                    <div class="score-display" id="scoreDisplay">0 pts</div>
+                    <div class="stats">
+                        <div class="stats-item">
+                            <span>Tiros:</span>
+                            <span id="shotCount">0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Média:</span>
+                            <span id="avgScore">0.0</span>
+                        </div>
+                        <div class="stats-item">
+                            <span>Melhor:</span>
+                            <span id="bestShot">0</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="control-group">
+                    <h3>🎮 Ações</h3>
+                    <button id="btnLimpar" class="btn-danger">Limpar Tiros</button>
+                    <button id="btnSalvar" class="btn-secondary">Salvar Sessão</button>
+                    <button id="btnZoom" class="btn-secondary">Toggle Zoom</button>
+                </div>
+                
+                <div class="control-group">
+                    <h3>📝 Histórico</h3>
+                    <div class="shot-history" id="shotHistory">
+                        <div style="text-align: center; color: #999;">Nenhum tiro registrado</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+   
+
+<script>
+/* ===================== CONFIG ===================== */
+// URL MJPEG (troque pela sua URL local)
+let CAMERA_URL = ""; //http://192.168.1.4:8080/video
+
+
+// Detection threshold (fixo, conforme você pediu)
+let THRESHOLD = 0;
+
+// Relações e fatores (ajuste se necessário)
+const MM_TO_PX_RATIO = 0.3;      // quantos pixels da câmera = 1 mm (estimativa) - ajuste conforme seu setup
+const FRONTEND_PX_MM = 3;      // no seu frontend 1 mm = 3 px
+
+// Tempo mínimo entre detecções (ms)
+const DETECTION_COOLDOWN_MS = 300;
+
+/* ===================== VARIÁVEIS ===================== */
+const canvas = document.getElementById("alvo");
+const ctx = canvas.getContext("2d");
+
+let basePoint = null;               // usado apenas para desenhar o ponto de calibração (verdadeiro ou objeto)
+let calibrationCamPoint = null;     // {x,y} no espaço da câmera preview
+let pontosDisparo = [];
+let totalScore = 0;
+let zoomMode = false;
+let zoomFactor = 1;
+let zoomOffsetX = 0;
+let zoomOffsetY = 0;
+let timerRunning = false;
+let timerSeconds = 0;
+let timerInterval = null;
+
+let cameraFrameOK = false;
+
+
+// ROI circular no preview da câmera
+const ROI_RADIUS = 40; // px
+const ROI_CENTER_X = 160; // metade dos 320px do preview
+const ROI_CENTER_Y = 90;  // metade dos 180px do preview
+
+const statusDiv = document.getElementById("status");
+const btnCalibrar = document.getElementById("btnCalibrar");
+const btnLimpar = document.getElementById("btnLimpar");
+const btnSalvar = document.getElementById("btnSalvar");
+const btnZoom = document.getElementById("btnZoom");
+const scoreDisplay = document.getElementById("scoreDisplay");
+const shotCount = document.getElementById("shotCount");
+const avgScore = document.getElementById("avgScore");
+const bestShot = document.getElementById("bestShot");
+const shotHistory = document.getElementById("shotHistory");
+const btnConectarCamera = document.getElementById("btnConectarCamera");
+const cameraIPInput = document.getElementById("cameraIPInput");
+
+const timerDisplay = document.getElementById("timerDisplay");
+const btnStartPause = document.getElementById("btnStartPause");
+const btnResetTimer = document.getElementById("btnResetTimer");
+
+const sensitivityValue = document.getElementById("sensibilidade");
+const divPreview = document.getElementById("containerPreview");
+
+
+let modoCalibracao = false;
+let lastDetectionTime = 0;
+let calibrandoIluminacao = false;
+/* Valores padrão do alvo (mesmos do seu script) */
+const DEFAULT_ALVO_PX = {
+    "7": 600,
+    "8": 450,
+    "9": 300,
+    "10": 150,
+    "X": 75
+};
+
+/* Config local (substitui o fetch /config) */
+const config = {
+    roi_size_mm: 80,
+    roi_size_px: 320,
+    roi_x: 0,
+    roi_y: 0,
+    alvo_virtual_px: DEFAULT_ALVO_PX,
+    roi_to_target_scale: 1.0,
+    frontend_px_mm: FRONTEND_PX_MM
+};
+
+
+
+
+let dragging = false;
+let startX = 0, startY = 0;
+let currentX = -50, currentY = -50;
+
+// Função para obter coordenadas tanto de mouse quanto de toque
+function getPos(e) {
+    if (e.touches && e.touches.length > 0) {
+        return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    }
+    return { x: e.clientX, y: e.clientY };
+}
+
+// -------------------- START --------------------
+function dragStart(e) {
+    const pos = getPos(e);
+
+    dragging = true;
+    startX = pos.x;
+    startY = pos.y;
+
+    e.preventDefault(); // evita scroll/zoom em celular
+}
+
+divPreview.addEventListener("mousedown", dragStart);
+divPreview.addEventListener("touchstart", dragStart, { passive: false });
+
+// -------------------- MOVE --------------------
+function dragMove(e) {
+    if (!dragging) return;
+
+    const pos = getPos(e);
+
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+
+    divPreview.style.transform = `translate(${currentX + dx}px, ${currentY + dy}px)`;
+
+    e.preventDefault();
+}
+
+document.addEventListener("mousemove", dragMove);
+document.addEventListener("touchmove", dragMove, { passive: false });
+
+// -------------------- END --------------------
+function dragEnd(e) {
+    if (!dragging) return;
+
+    // Para touchend, e.touches costuma estar vazio — usar changedTouches
+    let pos;
+    if (e.changedTouches && e.changedTouches.length > 0) {
+        pos = { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    } else {
+        pos = getPos(e); // fallback para mouse
+    }
+
+    const dx = pos.x - startX;
+    const dy = pos.y - startY;
+
+    currentX += dx;
+    currentY += dy;
+
+    dragging = false;
+
+    localStorage.setItem("divPreviewX", currentX);
+    localStorage.setItem("divPreviewY", currentY);
+}
+
+
+document.addEventListener("mouseup", dragEnd);
+document.addEventListener("touchend", dragEnd);
+
+
+
+document.addEventListener("DOMContentLoaded", () => {
+    const saved = parseFloat(localStorage.getItem("sensitivity") || 220);
+    atualizarSensibilidade(saved);
+    const savedX = localStorage.getItem("divPreviewX");
+    const savedY = localStorage.getItem("divPreviewY");
+
+    if (savedX !== null && savedY !== null) {
+        currentX = parseFloat(savedX);
+        currentY = parseFloat(savedY);
+        divPreview.style.transform = `translate(${currentX}px, ${currentY}px)`;
+    }
+});
+
+const labelSensManual = document.getElementById("labelSensManual");
+const btnSensMais = document.getElementById("btnSensMais");
+const btnSensMenos = document.getElementById("btnSensMenos");
+
+function atualizarSensibilidade(val) {
+    val = Math.max(0, Math.min(255, val)); // segurança
+    THRESHOLD = val;
+    
+    // atualiza UI
+    labelSensManual.value = val;
+    
+    // salva
+    localStorage.setItem("sensitivity", val);
+}
+let holdInterval = null;
+
+function startHold(step) {
+    // aplica imediatamente
+    atualizarSensibilidade(parseFloat(THRESHOLD) + step);
+
+    // inicia repetição
+    holdInterval = setInterval(() => {
+        atualizarSensibilidade(parseFloat(THRESHOLD) + step);
+    }, 100); // repete a cada 100ms (ajustável)
+}
+
+function stopHold() {
+    clearInterval(holdInterval);
+    holdInterval = null;
+}
+
+// BOTÃO + 
+btnSensMais.addEventListener("mousedown", () => startHold(+0.5));
+btnSensMais.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startHold(+0.5);
+}, { passive: false });
+
+btnSensMais.addEventListener("mouseup", stopHold);
+btnSensMais.addEventListener("mouseleave", stopHold);
+btnSensMais.addEventListener("touchend", stopHold);
+btnSensMais.addEventListener("touchcancel", stopHold);
+
+// BOTÃO -
+btnSensMenos.addEventListener("mousedown", () => startHold(-0.5));
+btnSensMenos.addEventListener("touchstart", (e) => {
+    e.preventDefault();
+    startHold(-0.5);
+}, { passive: false });
+
+btnSensMenos.addEventListener("mouseup", stopHold);
+btnSensMenos.addEventListener("mouseleave", stopHold);
+btnSensMenos.addEventListener("touchend", stopHold);
+btnSensMenos.addEventListener("touchcancel", stopHold);
+
+
+
+
+
+
+
+
+
+
+
+
+/* ===================== PREVIEW DA CÂMERA (MJPEG) ===================== */
+const camPreview = document.getElementById("cameraPreview");
+const camCtx = camPreview.getContext("2d", { willReadFrequently: true });
+const camImg = new Image();
+let mjpegReaderAbort = false;
+
+
+// Start MJPEG by setting src to the MJPEG endpoint. Many MJPEG endpoints can be loaded as <img>.
+function startMJPEG() {
+    try {
+        camImg.crossOrigin = "anonymous";
+        camImg.src = CAMERA_URL;
+        camImg.onload = () => {
+            // nothing else needed; render loop will draw camImg continuously
+            cameraFrameOK = true;
+            console.log("MJPEG loaded");
+            atualizarStatus("Câmera conectada com sucesso.", "status-ok");
+        };
+        camImg.onerror = (e) => {
+            console.warn("Erro carregando MJPEG (verifique URL):", e);
+            atualizarStatus("Erro ao carregar câmera (verifique URL).", "status-error");
+        };
+    } catch (e) {
+        console.error("Erro ao iniciar MJPEG:", e);
+        atualizarStatus("Erro ao iniciar câmera.", "status-error");
+    }
+}
+
+/* ===================== FUNÇÕES DO ALVO (mantidas do seu script) ===================== */
+function desenharAlvo() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    if (zoomMode) {
+        ctx.scale(zoomFactor, zoomFactor);
+        ctx.translate(zoomOffsetX, zoomOffsetY);
+    }
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    ctx.fillStyle = "white";
+    ctx.fillRect(-centerX, -centerY, canvas.width * 2, canvas.height * 2);
+    
+    const alvo_px = config ? config.alvo_virtual_px : DEFAULT_ALVO_PX;
+    const circulos = [
+        { raio: alvo_px["7"] / 2, cor: "black", pontos: 7 },
+        { raio: alvo_px["8"] / 2, cor: "black", pontos: 8 },
+        { raio: alvo_px["9"] / 2, cor: "black", pontos: 9 },
+        { raio: alvo_px["10"] / 2, cor: "black", pontos: 10 },
+        { raio: alvo_px["X"] / 2, cor: "black", pontos: "X" }
+    ];
+    circulos.forEach((circulo, index) => {
+        ctx.strokeStyle = circulo.cor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, circulo.raio, 0, 2 * Math.PI);
+        ctx.stroke();
+        if (index < circulos.length - 1) {
+            ctx.fillStyle = "black";
+            ctx.font = "16px Arial";
+            ctx.textAlign = "center";
+            ctx.fillText(circulo.pontos, centerX, centerY - circulo.raio - 10);
+        }
+    });
+    ctx.fillStyle = "white";
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, alvo_px["X"] / 2, 0, 2 * Math.PI);
+    ctx.fill();
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.strokeStyle = "rgba(0,0,0,0.3)";
+    ctx.lineWidth = 1;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(centerX - alvo_px["7"] / 2, centerY);
+    ctx.lineTo(centerX + alvo_px["7"] / 2, centerY);
+    ctx.moveTo(centerX, centerY - alvo_px["7"] / 2);
+    ctx.lineTo(centerX, centerY + alvo_px["7"] / 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.restore();
+}
+
+function transformarCoord(dx, dy) {
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    // scale_factor está disponível no config
+    return { x: centerX + dx, y: centerY + dy }; // Usar dx, dy diretamente do hit.x, hit.y
+}
+
+function plotarPontos() {
+    desenharAlvo();
+    ctx.save();
+    if (zoomMode) {
+        ctx.scale(zoomFactor, zoomFactor);
+        ctx.translate(zoomOffsetX, zoomOffsetY);
+    }
+    // if (basePoint) {
+    //     const p = transformarCoord(0, 0);
+    //     ctx.beginPath();
+    //     ctx.fillStyle = "purple";
+    //     ctx.arc(p.x, p.y, 6, 0, 2 * Math.PI);
+    //     ctx.fill();
+    //     ctx.strokeStyle = "white";
+    //     ctx.lineWidth = 2;
+    //     ctx.stroke();
+    // }
+    pontosDisparo.forEach((pt, index) => {
+        const p = transformarCoord(pt.dx, pt.dy);
+        ctx.beginPath();
+        ctx.fillStyle = "red";
+        ctx.arc(p.x, p.y, 7.5, 0, 2 * Math.PI);  // 15 px de diâmetro
+        ctx.fill();
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = "white";
+        ctx.font = "10px Arial";
+        ctx.textAlign = "center";
+        ctx.fillText(index + 1, p.x, p.y + 3);
+    });
+    ctx.restore();
+}
+
+function atualizarEstatisticas() {
+    const numTiros = pontosDisparo.length;
+    shotCount.textContent = numTiros;
+    if (numTiros > 0) {
+        const pontuacoes = pontosDisparo.map(pt => pt.score);
+        totalScore = pontuacoes.reduce((sum, score) => sum + score, 0);
+        const media = totalScore / numTiros;
+        const melhor = Math.max(...pontuacoes);
+        scoreDisplay.textContent = `${totalScore.toFixed(1)} pts`;
+        avgScore.textContent = media.toFixed(1);
+        bestShot.textContent = melhor.toFixed(1);
+        atualizarHistorico();
+    } else {
+        scoreDisplay.textContent = "0 pts";
+        avgScore.textContent = "0.0";
+        bestShot.textContent = "0";
+        shotHistory.innerHTML = '<div style="text-align: center; color: #999;">Nenhum tiro registrado</div>';
+    }
+}
+
+function atualizarHistorico() {
+    const historico = pontosDisparo.map((pt, index) => {
+        return `
+            <div class="shot-item">
+                <span>Tiro ${index + 1}:</span>
+                <span>${pt.score.toFixed(1)} pts</span>
+            </div>
+        `;
+    }).join('');
+    shotHistory.innerHTML = historico;
+    shotHistory.scrollTop = shotHistory.scrollHeight;
+}
+
+function atualizarStatus(texto, classe) {
+    statusDiv.textContent = texto;
+    statusDiv.className = classe;
+}
+
+function salvarSessao() {
+    const sessao = {
+        timestamp: new Date().toISOString(),
+        tiros: pontosDisparo.map(pt => ({
+            dx: pt.dx,
+            dy: pt.dy,
+            pontos: pt.score
+        })),
+        totalScore: totalScore,
+        numTiros: pontosDisparo.length
+    };
+    const blob = new Blob([JSON.stringify(sessao, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `scatt_session_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function formatTime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateTimer() {
+    timerSeconds++;
+    timerDisplay.textContent = formatTime(timerSeconds);
+}
+
+/* ===================== EVENT LISTENERS (controles) ===================== */
+btnCalibrar.onclick = () => {
+    if (!cameraFrameOK) {
+        atualizarStatus("Câmera indisponível. Não é possível calibrar.", "status-error");
+        return;
+    }
+    modoCalibracao = true;
+    basePoint = null;
+    pontosDisparo = [];
+    atualizarStatus("Modo calibração: aponte o laser para o centro do alvo e aguarde.", "status-calibrating");
+    btnCalibrar.disabled = true;
+    plotarPontos();
+    atualizarEstatisticas();
+    // agora a calibração será tratada localmente ao detectar o ponto brilhante
+};
+
+btnLimpar.onclick = () => {
+    pontosDisparo = [];
+    totalScore = 0;
+    plotarPontos();
+    atualizarEstatisticas();
+};
+
+
+
+btnConectarCamera.onclick = () => {
+    const ip = cameraIPInput.value.trim();
+    if (ip) {
+        CAMERA_URL = `http://${ip}:8080/video`;
+        startMJPEG();
+        atualizarStatus("Tentando conectar à câmera...", "status-calibrating");        
+    } else {
+        atualizarStatus("Por favor, insira um endereço IP válido.", "status-error");
+    }
+}
+
+btnSalvar.onclick = salvarSessao;
+
+btnZoom.onclick = () => {
+    zoomMode = !zoomMode;
+    if (zoomMode) {
+        zoomFactor = 3;
+        zoomOffsetX = -100;
+        zoomOffsetY = -100;
+        btnZoom.textContent = "Zoom Normal";
+    } else {
+        zoomFactor = 1;
+        zoomOffsetX = 0;
+        zoomOffsetY = 0;
+        btnZoom.textContent = "Zoom Centro";
+    }
+    plotarPontos();
+};
+
+btnStartPause.onclick = () => {
+    if (timerRunning) {
+        clearInterval(timerInterval);
+        timerRunning = false;
+        btnStartPause.textContent = "Iniciar";
+    } else {
+        timerInterval = setInterval(updateTimer, 1000);
+        timerRunning = true;
+        btnStartPause.textContent = "Pausar";
+    }
+};
+
+btnResetTimer.onclick = () => {
+    clearInterval(timerInterval);
+    timerRunning = false;
+    timerSeconds = 0;
+    timerDisplay.textContent = "00:00:00";
+    btnStartPause.textContent = "Iniciar";
+};
+
+/* ===================== DETECÇÃO NO FRONTEND (MJPEG -> canvas) ===================== */
+
+/**
+ * detectLaserInImageData
+ * percorre os pixels do ImageData (RGBA) e retorna o pixel mais brilhante
+ * (usando o método antigo: brilho = max(r,g,b) e threshold fixo).
+ * Retorna {x,y} em coordenadas do canvas de preview, ou null.
+ */
+
+// memória temporal para suavizar pequenos ruídos
+let lastLaserX = null;
+let lastLaserY = null;
+
+function detectLaser(imgData, width, height) {
+    const data = imgData.data;
+
+    let maxB = -1;
+    let lx = -1, ly = -1;
+
+    // ----------------------------
+    // 1) Achar o pixel mais brilhante do ROI (núcleo do laser)
+    // ----------------------------
+    for (let i = 0; i < data.length; i += 4) {
+        const idx = i / 4;
+        const x = idx % width;
+        const y = Math.floor(idx / width);
+
+        const dx = x - ROI_CENTER_X;
+        const dy = y - ROI_CENTER_Y;
+        if (dx*dx + dy*dy > ROI_RADIUS * ROI_RADIUS) continue;
+
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        const bright = Math.max(r, g, b);
+
+        // pegar apenas o pico mais forte e acima do threshold
+        if (bright > THRESHOLD && bright > maxB) {
+            maxB = bright;
+            lx = x;
+            ly = y;
+        }
+    }
+
+    if (maxB === -1) return null; // nada encontrado
+
+    // ----------------------------
+    // 2) Janela adaptativa
+    //    quanto mais brilhante, menor a janela.
+    //    Por quê? Em lasers fortes o halo cresce, mas o núcleo fica pequeno.
+    // ----------------------------
+    let windowSize;
+    if (maxB > 240) windowSize = 2;     // laser muito forte → janela 5x5
+    else if (maxB > 200) windowSize = 3; // janela 7x7
+    else windowSize = 4;                 // janela 9x9 (laser fraco → consideração maior)
+
+    // ----------------------------
+    // 3) Centroide ponderado por intensidade
+    // ----------------------------
+    let sumX = 0, sumY = 0, sumW = 0;
+
+    for (let dx = -windowSize; dx <= windowSize; dx++) {
+        for (let dy = -windowSize; dy <= windowSize; dy++) {
+
+            const xx = lx + dx;
+            const yy = ly + dy;
+            if (xx < 0 || yy < 0 || xx >= width || yy >= height) continue;
+
+            const rx = xx - ROI_CENTER_X;
+            const ry = yy - ROI_CENTER_Y;
+            if (rx*rx + ry*ry > ROI_RADIUS * ROI_RADIUS) continue;
+
+            const idx2 = (yy * width + xx) * 4;
+            const r = data[idx2];
+            const g = data[idx2 + 1];
+            const b = data[idx2 + 2];
+            const bright = Math.max(r, g, b);
+
+            // rejeitar flare radial (pixels que são brilhantes mas menos que 70% do pico)
+            if (bright < maxB * 0.70) continue;
+
+            // peso proporcional ao brilho
+            const w = bright * bright; // quadrático -> muito mais preciso
+            sumX += xx * w;
+            sumY += yy * w;
+            sumW += w;
+        }
+    }
+
+    // fallback raro
+    if (sumW === 0) return { x: lx, y: ly };
+
+    // centro calculado
+    let cx = sumX / sumW;
+    let cy = sumY / sumW;
+
+    // ----------------------------
+    // 4) Filtro temporal (suaviza jitter e micro variação)
+    //    Suavização leve: 60% novo, 40% antigo.
+    // ----------------------------
+    if (lastLaserX !== null) {
+        cx = cx * 0.60 + lastLaserX * 0.40;
+        cy = cy * 0.60 + lastLaserY * 0.40;
+    }
+
+    lastLaserX = cx;
+    lastLaserY = cy;
+
+    return { x: cx, y: cy };
+}
+
+
+
+/**
+ * calculateScore(distance_mm)
+ * função simples de scoring: 10 pontos no centro, decresce com a distância.
+ * ajuste conforme desejado.
+ */
+function calculateScore(distance_mm) {
+    // exemplo: pontuação linear decrescente (até 0)
+    const score = Math.max(0, 10 - (distance_mm / 5)); // 5 mm por ponto
+    return Math.round(score * 10) / 10; // 1 casa decimal
+}
+
+/* Main loop: desenha preview da câmera, detecta ponto, faz calibração e registra tiros */
+
+function mainLoop() {
+
+    if(calibrandoIluminacao) return; // se estiver calibrando iluminação, não faz nada.
+   
+
+    // ===========================================================
+    // 1) Desenha frame da câmera
+    // ===========================================================
+    try {
+        camCtx.drawImage(camImg, 0, 0, camPreview.width, camPreview.height);
+
+        // ----------------------------
+        // 2) Desenhar ROI circular (VISUAL)
+        // agora com bordas escuras para não serem detectadas
+        // ----------------------------
+        camCtx.beginPath();
+        camCtx.strokeStyle = "red"; // azul vibrante
+        camCtx.lineWidth = 0.2;                       // linha fina
+        camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
+        camCtx.stroke();
+
+        // sombra interna leve que NÃO interfere na detecção
+        // camCtx.beginPath();
+        // camCtx.fillStyle = "rgba(0,0,0,0.10)";
+        // camCtx.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI * 2);
+        // camCtx.fill();
+
+    } catch (e) {
+        // imagem ainda não carregou
+    }
+
+
+    // ===========================================================
+    // 3) Capturar pixels do preview para detectar laser
+    // ===========================================================
+    const imgData = camCtx.getImageData(0, 0, camPreview.width, camPreview.height);
+    const detected = detectLaser(imgData, camPreview.width, camPreview.height);
+    const now = performance.now();
+
+
+    // ===========================================================
+    // 4) PROCESSAR DETECÇÃO
+    // ===========================================================
+    if (detected && now - lastDetectionTime > DETECTION_COOLDOWN_MS) {
+
+        // -----------------------------------------------------------
+        // A) Salvar ponto de calibração
+        // -----------------------------------------------------------
+        if (modoCalibracao) {
+
+            calibrationCamPoint = {
+                x: detected.x - ROI_CENTER_X,
+                y: detected.y - ROI_CENTER_Y
+            };
+
+            basePoint = { x: 0, y: 0 }; // mantém compatibilidade antiga
+
+            modoCalibracao = false;
+            btnCalibrar.disabled = false;
+            atualizarStatus("Modo normal. Dispare para ver os impactos.", "status-ready");
+
+        }
+
+        // -----------------------------------------------------------
+        // B) Tiro normal (se já calibrado)
+        // -----------------------------------------------------------
+        else if (calibrationCamPoint) {
+
+            // deslocamento na câmera (px)
+            const dx_cam_px = (detected.x - ROI_CENTER_X) - calibrationCamPoint.x;
+            const dy_cam_px = (detected.y - ROI_CENTER_Y) - calibrationCamPoint.y;
+
+            // px → mm
+            const dx_mm = dx_cam_px / MM_TO_PX_RATIO;
+            const dy_mm = dy_cam_px / MM_TO_PX_RATIO;
+
+            // mm → alvo virtual px
+            const dx_front_px = dx_mm * FRONTEND_PX_MM;
+            const dy_front_px = dy_mm * FRONTEND_PX_MM;
+
+            const dist_mm = Math.sqrt(dx_mm*dx_mm + dy_mm*dy_mm);
+            const score = calculateScore(dist_mm);
+
+            // salva tiro
+            pontosDisparo.push({
+                dx: dx_front_px,
+                dy: dy_front_px,
+                score: score
+            });
+
+            if (pontosDisparo.length > 50)
+                pontosDisparo = pontosDisparo.slice(-50);
+
+            plotarPontos();
+            atualizarEstatisticas();
+        }
+
+        lastDetectionTime = now;
+    }
+
+
+
+    // ===========================================================
+    // 5) DEBUG VISUAL NO PREVIEW
+    // ===========================================================
+
+    // Caixa de borda para saber que o canvas está ativo
+    camCtx.strokeStyle = "rgba(255,255,255,0.1)";
+    camCtx.lineWidth = 1;
+    camCtx.strokeRect(0,0,camPreview.width, camPreview.height);
+
+    // -- ponto de calibração no preview --
+    if (calibrationCamPoint) {
+        camCtx.beginPath();
+        camCtx.fillStyle = "yellow";
+        camCtx.arc(
+            ROI_CENTER_X + calibrationCamPoint.x,
+            ROI_CENTER_Y + calibrationCamPoint.y,
+            2, 0, Math.PI*2 //tamanho do ponto amarelo
+        );
+        camCtx.fill();
+    }
+
+    // -- ponto detectado --
+    if (detected) {
+        camCtx.beginPath();
+        camCtx.fillStyle = "lime";
+        camCtx.arc(detected.x, detected.y, 2, 0, Math.PI*2);
+        camCtx.fill();
+    }
+
+
+    // ===========================================================
+    // 6) Redesenhar alvo (mantém consistência visual)
+    // ===========================================================
+    plotarPontos();
+
+
+    // ===========================================================
+    // 7) Loop contínuo
+    // ===========================================================
+    requestAnimationFrame(mainLoop);
+}
+
+
+
+
+/* ===================== START ===================== */
+desenharAlvo();
+atualizarEstatisticas();
+requestAnimationFrame(mainLoop);
+
+</script>
+</body>
+</html>
