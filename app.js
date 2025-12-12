@@ -215,7 +215,7 @@ const ROI_X = ROI_CENTER_X - ROI_RADIUS, ROI_Y = ROI_CENTER_Y - ROI_RADIUS, ROI_
 
 function drawROIMaskOnCanvas(context) {
   context.beginPath();
-  context.strokeStyle = "rgba(0, 120, 255, 0.9)";
+  context.strokeStyle = "rgba(255, 0, 0, 0.9)";
   context.lineWidth = 0.8;
   context.arc(ROI_CENTER_X, ROI_CENTER_Y, ROI_RADIUS, 0, Math.PI*2);
   context.stroke();
@@ -242,6 +242,19 @@ function mainLoop() {
 
   // draw static roi mask on preview and modals (once per frame is ok)
   drawROIMaskOnCanvas(camCtx);
+
+  if (calibrationCamPoint) {
+    camCtx.beginPath();
+    camCtx.fillStyle = "yellow";
+    camCtx.arc(
+        ROI_CENTER_X + calibrationCamPoint.x,
+        ROI_CENTER_Y + calibrationCamPoint.y,
+        3,    // tamanho um pouco maior (2 px ficava difícil no mobile)
+        0,
+        Math.PI * 2
+    );
+    camCtx.fill();
+  }
 
   // frame skip logic (adaptive)
   if ((frameSkip++ % skipTarget) !== 0) {
@@ -406,7 +419,13 @@ btnResetTimer.addEventListener("click", ()=>{ clearInterval(timerInterval); time
 
 btnLimpar.addEventListener("click", ()=>{ pontosDisparo=[]; plotarPontos(); atualizarEstatisticas(); });
 btnSalvar.addEventListener("click", salvarSessao);
-btnCalibrar.addEventListener("click", ()=> { modoCalibracao = true; atualizarStatus("Modo calibração: aponte o laser e aguarde.", "status-calibrating"); });
+btnCalibrar.addEventListener("click", ()=> {
+  calibrationCamPoint = null;
+  pontosDisparo = [];
+  plotarPontos(); 
+  modoCalibracao = true; 
+  atualizarStatus("Modo calibração: aponte o laser e aguarde.", "status-calibrating"); 
+});
 
 /* placeholder: plotarPontos e atualizarEstatisticas (integre suas funções existentes aqui) */
 const canvasAlvo = document.getElementById("alvo"), ctxAlvo = canvasAlvo.getContext("2d");
